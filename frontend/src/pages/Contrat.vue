@@ -113,7 +113,17 @@
               label="Bien"
               outlined
               required
+              @update:model-value="onContratChange"
             />
+             <q-input
+                v-model="contratForm.loyer_mensuel"
+                label="Loyer Mensuel"
+                type="number"
+                outlined
+                readonly
+                required
+              />
+
             <q-input
               v-model="contratForm.date_debut"
               label="Date de début"
@@ -125,13 +135,6 @@
               v-model="contratForm.date_fin"
               label="Date de fin"
               type="date"
-              outlined
-              required
-            />
-            <q-input
-              v-model="contratForm.loyer_mensuel"
-              label="Loyer Mensuel"
-              type="number"
               outlined
               required
             />
@@ -199,6 +202,23 @@ export default {
     };
   },
   methods: {
+
+     watch: {
+        'contratForm.bien_id': function(newVal) {
+          this.onContratChange();
+        }
+      },
+
+      // Quand un bien est sélectionné
+  onContratChange() {
+      const bien = this.biens.find(b => b.id === this.contratForm.bien_id);
+      if (bien) {
+        this.contratForm.loyer_mensuel = bien.loyer_mensuel; // Assurez-vous que le champ existe dans `biens`
+      } else {
+        this.contratForm.loyer_mensuel = ''; // Réinitialiser si aucun bien sélectionné
+      }
+    },
+
     async fetchLocataires() {
       try {
         const response = await axios.get("http://localhost:2000/api/locataires");

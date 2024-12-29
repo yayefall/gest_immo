@@ -389,7 +389,7 @@ export default {
     // Génération de la facture
 
     generateInvoice(paiement) {
-  const doc = new jsPDF();
+     const doc = new jsPDF();
 
   // Configuration de la page
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -508,7 +508,97 @@ export default {
       this.isDialogOpen = true;
     },
 
+
     async deletePaiement(id) {
+  console.log('ID reçu pour suppression :', id);
+
+  // Vérification de l'ID
+  if (!id || typeof id !== 'number') {
+    this.$q.notify({ type: 'negative', message: 'ID du paiement invalide. Impossible de supprimer.' });
+    return;
+  }
+
+  try {
+    // Demande de confirmation
+    const confirmed = await this.$q.dialog({
+      title: 'Confirmation',
+      message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
+      ok: { label: 'Oui', color: 'negative' },
+      cancel: { label: 'Non', color: 'primary' },
+      persistent: true,
+    }).onOk(() => true).onCancel(() => false);
+
+    // Si l'utilisateur confirme la suppression
+    if (confirmed) {
+      await axios.delete(`http://localhost:2000/api/paiement/${id}`);
+      this.paiements = this.paiements.filter(p => p.id !== id); // Mise à jour locale
+      this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
+    } else {
+      this.$q.notify({ type: 'info', message: 'Suppression annulée.' });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression du paiement :", error);
+
+    // Gestion des erreurs
+    if (error.response) {
+      const status = error.response.status;
+
+      if (status === 404) {
+        this.$q.notify({ type: 'negative', message: 'Paiement introuvable. Suppression impossible.' });
+      } else if (status === 401 || status === 403) {
+        this.$q.notify({ type: 'negative', message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
+      } else {
+        this.$q.notify({ type: 'negative', message: 'Une erreur est survenue lors de la suppression.' });
+      }
+    } else {
+      this.$q.notify({ type: 'negative', message: 'Erreur réseau. Veuillez réessayer.' });
+    }
+  }
+},
+
+  /*  async deletePaiement(id) {
+    console.log('ID reçu pour suppression :', id);
+
+  if (!id || typeof id !== 'number') {
+    this.$q.notify({ type: 'negative', message: 'ID du paiement invalide. Impossible de supprimer.' });
+    return;
+  }
+
+  try {
+    confirmed = await new Promise(resolve => {
+      this.$q.dialog({
+      title: 'Confirmation',
+      message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
+      ok: { label: 'Oui', color: 'negative' },
+      cancel: { label: 'Non', color: 'primary' },
+      persistent: true,
+    });
+  });
+    if (confirmed) {
+      await axios.delete(`http://localhost:2000/api/paiement/${id}`);
+      this.paiements = this.paiements.filter(p => p.id !== id); // Mise à jour locale
+      this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression du paiement :", error);
+
+    if (error.response) {
+      const status = error.response.status;
+
+      if (status === 404) {
+        this.$q.notify({ type: 'negative', message: 'Paiement introuvable. Suppression impossible.' });
+      } else if (status === 401 || status === 403) {
+        this.$q.notify({ type: 'negative', message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
+      } else {
+        this.$q.notify({ type: 'negative', message: 'Une erreur est survenue lors de la suppression.' });
+      }
+    } else {
+      this.$q.notify({ type: 'negative', message: 'Erreur réseau. Veuillez réessayer.' });
+    }
+  }
+},*/
+
+  /*  async deletePaiements(id) {
       console.log('ID reçu pour suppression :', id);
       if (!id) {
         this.$q.notify({ type: 'negative', message: 'ID du paiement introuvable. Impossible de supprimer.' });
@@ -543,7 +633,8 @@ export default {
         console.error("Erreur lors de la suppression du paiement :", error);
         this.$q.notify({ type: 'negative', message: 'Erreur lors de la suppression du paiement.' });
       }
-    },
+    },*/
+
   },
 };
 </script>
