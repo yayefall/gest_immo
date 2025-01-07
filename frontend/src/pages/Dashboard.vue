@@ -33,7 +33,7 @@
           <div class="col-12 col-md-6">
             <q-card>
               <q-card-section>
-                <div class="text-h6">Paiement Mensuelles</div>
+                <div class="text-h6"> Trafic des Locataires</div>
                 <canvas id="monthlySalesChart"></canvas>
               </q-card-section>
             </q-card>
@@ -41,7 +41,7 @@
           <div class="col-12 col-md-6">
             <q-card>
               <q-card-section>
-                <div class="text-h6">Trafic des Locataires</div>
+                <div class="text-h6"> Paiement Mensuelles </div>
                 <canvas id="userTrafficChart"></canvas>
               </q-card-section>
             </q-card>
@@ -108,8 +108,8 @@ export default {
           labels: this.salesData.map((item) => item.month),
           datasets: [
             {
-              label: "Ventes ($)",
-              data: this.salesData.map((item) => item.total),
+              label: "Locataires ",
+              data: this.salesData.map((item) => item.total_locataires),
               backgroundColor: "#42A5F5",
             },
           ],
@@ -126,8 +126,8 @@ export default {
           labels: this.userTrafficData.map((item) => item.month),
           datasets: [
             {
-              label: "Locataires",
-              data: this.userTrafficData.map((item) => item.total_locataires),
+              label: "Paiement (cfa)",
+              data: this.userTrafficData.map((item) => item.total),
               borderColor: "#66BB6A",
               fill: false,
             },
