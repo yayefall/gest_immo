@@ -1,5 +1,4 @@
 <!-- eslint-disable vue/multi-word-component-names -->
-<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <q-layout view="hHh lpR fFf">
     <!-- Contenu principal du tableau de bord -->
@@ -9,21 +8,21 @@
         <div class="row q-col-gutter-md">
           <q-card class="col-12 col-md-4 text-center bg-primary text-white">
             <q-card-section>
-              <div class="text-h6">Clients</div>
-              <div class="text-caption">{{ stats.client }}</div>
+              <div class="text-h6">Locataires</div>
+              <div class="text-caption">{{ stats.locataire }}</div>
             </q-card-section>
           </q-card>
 
           <q-card class="col-12 col-md-4 text-center bg-secondary text-white ">
             <q-card-section>
-              <div class="text-h6">Commandes</div>
-              <div class="text-caption">{{ stats.commande }}</div>
+              <div class="text-h6">Paiement</div>
+              <div class="text-caption">{{ stats.paiement }}</div>
             </q-card-section>
           </q-card>
 
           <q-card class="col-12 col-md-4 text-center bg-accent text-white">
             <q-card-section>
-              <div class="text-h6">Revenus</div>
+              <div class="text-h6">Revenue</div>
               <div class="text-caption">{{ stats.revenue }}</div>
             </q-card-section>
           </q-card>
@@ -34,7 +33,7 @@
           <div class="col-12 col-md-6">
             <q-card>
               <q-card-section>
-                <div class="text-h6">Ventes Mensuelles</div>
+                <div class="text-h6">Paiement Mensuelles</div>
                 <canvas id="monthlySalesChart"></canvas>
               </q-card-section>
             </q-card>
@@ -42,7 +41,7 @@
           <div class="col-12 col-md-6">
             <q-card>
               <q-card-section>
-                <div class="text-h6">Trafic des Clients</div>
+                <div class="text-h6">Trafic des Locataires</div>
                 <canvas id="userTrafficChart"></canvas>
               </q-card-section>
             </q-card>
@@ -64,9 +63,9 @@ export default {
   data() {
     return {
       stats: {
-        client: 0,
-        commande: 0,
+        locataire: 0,
         revenue: 0,
+        paiement: 0,
       },
       salesData: [], // Données pour les ventes mensuelles
       userTrafficData: [], // Données pour le trafic utilisateur
@@ -82,12 +81,12 @@ export default {
     this.stats = statsResponse.data;
  // Appel à l'API pour récupérer les commandes globales
     console.log("Fetching sales data...");
-    const salesResponse = await axios.get("http://localhost:2000/api/commandess");
+    const salesResponse = await axios.get("http://localhost:2000/api/paiement");
     console.log("les commandes Response:", salesResponse.data);
     this.salesData = salesResponse.data;
  // Appel à l'API pour récupérer les clients globales
     console.log("Fetching user traffic data...");
-    const trafficResponse = await axios.get("http://localhost:2000/api/clients");
+    const trafficResponse = await axios.get("http://localhost:2000/api/locataires");
     console.log("les Clients Traffic Response:", trafficResponse.data);
     this.userTrafficData = trafficResponse.data;
 
@@ -127,8 +126,8 @@ export default {
           labels: this.userTrafficData.map((item) => item.month),
           datasets: [
             {
-              label: "Clients",
-              data: this.userTrafficData.map((item) => item.total_clients),
+              label: "Locataires",
+              data: this.userTrafficData.map((item) => item.total_locataires),
               borderColor: "#66BB6A",
               fill: false,
             },

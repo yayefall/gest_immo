@@ -62,6 +62,7 @@
             <q-input v-model="locataireForm.email" label="Email" type="email" outlined required />
             <q-input v-model="locataireForm.telephone" label="Téléphone" type="tel" outlined required />
             <q-input v-model="locataireForm.adresse" label="Adresse" outlined required />
+            <q-input v-model="locataireForm.date" label="Date" type="date" required />
           </q-card-section>
 
           <q-card-actions align="right">
@@ -100,12 +101,13 @@ export default {
         { name: 'email', label: 'Email', align: 'left', field: 'email' },
         { name: 'telephone', label: 'Téléphone', align: 'left', field: 'telephone' },
         { name: 'adresse', label: 'Adresse', align: 'left', field: 'adresse' },
+        { name: 'date', label: 'Date', align: 'left', field: 'date', format: val => new Date(val).toLocaleDateString(), sortable: true },
         { name: 'actions', label: 'Actions', align: 'center' }
       ],
       pagination: { page: 1, rowsPerPage: 10 },
       isDialogOpen: false,
       dialogTitle: 'Ajouter Locataire',
-      locataireForm: { id: null, nomComplet: '', email: '', telephone: '', adresse: '' }
+      locataireForm: { id: null, nomComplet: '', email: '', telephone: '', adresse: '', date:'' }
     };
   },
   methods: {
@@ -128,7 +130,7 @@ export default {
 
     openAddDialog() {
       this.dialogTitle = 'Ajouter Locataire';
-      this.locataireForm = { id: null, nomComplet: '', email: '', telephone: '', adresse: '' };
+      this.locataireForm = { id: null, nomComplet: '', email: '', telephone: '', adresse: '' ,date:''};
       this.isDialogOpen = true;
     },
     editLocataire(locataire) {

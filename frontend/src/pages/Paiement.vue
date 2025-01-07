@@ -105,6 +105,7 @@
               multiple
               emit-value
               map-options
+              clearable
               required
               @input="onMoisChange"
             />
@@ -145,6 +146,11 @@ import { exportFile } from "quasar";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
+function wrapCsvValue(val, formatFn, row) {
+  let formatted = formatFn !== void 0 ? formatFn(val, row) : val;
+  formatted = formatted === void 0 || formatted === null ? '' : String(formatted);
+  return `"${formatted.split('"').join('""')}"`;
+}
 export default {
   created() {
     this.fetchPaiements();
@@ -226,8 +232,8 @@ export default {
     },
     // ajouter un paiement
 
-    async savePaiement() {
-  try {
+ async savePaiement() {
+   try {
     // Vérifier le contrat sélectionné
     const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
     if (!contrat) {
@@ -276,7 +282,8 @@ export default {
       mois: Array.isArray(this.paiementForm.mois)
         ? this.paiementForm.mois.join(",")
         : this.paiementForm.mois,
-      statut: montantRestant > 0 ? 'avance' : 'payé',
+      //statut: montantRestant > 0 ? 'avance' : 'payé',
+      statut: this.paiementForm.montant_paye < this.paiementForm.montant_total ? "avance" : "payé",
     };
 
     // Envoyer les données au serveur
@@ -556,84 +563,39 @@ export default {
   }
 },
 
-  /*  async deletePaiement(id) {
-    console.log('ID reçu pour suppression :', id);
-
-  if (!id || typeof id !== 'number') {
-    this.$q.notify({ type: 'negative', message: 'ID du paiement invalide. Impossible de supprimer.' });
-    return;
-  }
-
-  try {
-    confirmed = await new Promise(resolve => {
-      this.$q.dialog({
-      title: 'Confirmation',
-      message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
-      ok: { label: 'Oui', color: 'negative' },
-      cancel: { label: 'Non', color: 'primary' },
-      persistent: true,
-    });
-  });
-    if (confirmed) {
-      await axios.delete(`http://localhost:2000/api/paiement/${id}`);
-      this.paiements = this.paiements.filter(p => p.id !== id); // Mise à jour locale
-      this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
-    }
-  } catch (error) {
-    console.error("Erreur lors de la suppression du paiement :", error);
-
-    if (error.response) {
-      const status = error.response.status;
-
-      if (status === 404) {
-        this.$q.notify({ type: 'negative', message: 'Paiement introuvable. Suppression impossible.' });
-      } else if (status === 401 || status === 403) {
-        this.$q.notify({ type: 'negative', message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
-      } else {
-        this.$q.notify({ type: 'negative', message: 'Une erreur est survenue lors de la suppression.' });
-      }
-    } else {
-      this.$q.notify({ type: 'negative', message: 'Erreur réseau. Veuillez réessayer.' });
-    }
-  }
-},*/
-
-  /*  async deletePaiements(id) {
-      console.log('ID reçu pour suppression :', id);
-      if (!id) {
-        this.$q.notify({ type: 'negative', message: 'ID du paiement introuvable. Impossible de supprimer.' });
+   exportTable() {
+      const rows = this.paiements;
+      const columns = this.columns.filter(col => col.name !== 'actions');
+      const content = [
+        columns.map(col => wrapCsvValue(col.label)),
+        ...rows.map(row =>
+          columns.map(col =>
+            wrapCsvValue(typeof col.field === 'function' ? col.field(row) : row[col.field || col.name])
+          ).join(',')
+        )
+      ].join('\r\n');
+      exportFile('Paiement-export.csv', content, 'text/csv');
+    },
+    exportToPDF() {
+      if (!this.paiements || this.paiements.length === 0) {
+        this.$q.notify({ message: 'Aucune donnée à exporter.', color: 'negative', icon: 'warning' });
         return;
       }
-
-      try {
-        const confirmed = await new Promise(resolve => {
-          this.$q.dialog({
-            title: 'Confirmation',
-            message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
-            ok: {
-              label: 'Oui',
-              color: 'negative',
-            },
-            cancel: {
-              label: 'Non',
-              color: 'primary',
-            },
-            persistent: true,
-            onOk: () => resolve(true),
-            onCancel: () => resolve(false),
-          });
+      const doc = new jsPDF();
+      const columns = this.columns.filter(col => col.name !== 'actions').map(col => ({ header: col.label, dataKey: col.name }));
+      const rows = this.paiements.map(paiement => {
+        const row = {};
+        this.columns.forEach(col => {
+          if (col.name !== 'actions') {
+            row[col.name] = typeof col.field === 'function' ? col.field(paiement) : paiement[col.field || col.name];
+          }
         });
-
-        if (confirmed) {
-          await axios.delete(`http://localhost:2000/api/paiement/${id}`);
-          this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
-          this.fetchPaiements();
-        }
-      } catch (error) {
-        console.error("Erreur lors de la suppression du paiement :", error);
-        this.$q.notify({ type: 'negative', message: 'Erreur lors de la suppression du paiement.' });
-      }
-    },*/
+        return row;
+      });
+      doc.text('Liste des Paiements', 14, 10);
+      doc.autoTable({ columns, body: rows, startY: 20, theme: 'grid' });
+      doc.save('Paiements-export.pdf');
+    }
 
   },
 };

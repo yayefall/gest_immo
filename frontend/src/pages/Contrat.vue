@@ -341,6 +341,7 @@ export default {
       ].join('\r\n');
       exportFile('contrats-export.csv', content, 'text/csv');
     },
+    
     exportToPDF() {
       if (!this.contrats || this.contrats.length === 0) {
         this.$q.notify({ message: 'Aucune donnée à exporter.', color: 'negative', icon: 'warning' });

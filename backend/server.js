@@ -226,11 +226,11 @@ app.get("/api/locataires", async (req, res) => {
 });
 
 app.post('/api/locataires', async (req, res) => {
-  const { nomComplet, email, telephone, adresse } = req.body;
-  const query = 'INSERT INTO locataires (nomComplet, email, telephone, adresse) VALUES (?, ?, ?, ?)';
+  const { nomComplet, email, telephone, adresse,date } = req.body;
+  const query = 'INSERT INTO locataires (nomComplet, email, telephone, adresse,date) VALUES (?, ?, ?, ?,?)';
   try {
-    const [results] = await db.execute(query, [nomComplet, email, telephone, adresse]);
-    res.json({ id: results.insertId, nomComplet, email, telephone, adresse });
+    const [results] = await db.execute(query, [nomComplet, email, telephone, adresse,date]);
+    res.json({ id: results.insertId, nomComplet, email, telephone, adresse ,date});
   } catch (err) {
     console.error('Erreur lors de l\'ajout du locataire:', err);
     res.status(500).send('Erreur serveur');
@@ -239,10 +239,10 @@ app.post('/api/locataires', async (req, res) => {
 
 app.put('/api/locataires/:id', async (req, res) => {
   const { id } = req.params;
-  const { nomComplet, email, telephone, adresse } = req.body;
-  const query = 'UPDATE locataires SET nomComplet = ?, email = ?, telephone = ?, adresse = ? WHERE id = ?';
+  const { nomComplet, email, telephone, adresse, date } = req.body;
+  const query = 'UPDATE locataires SET nomComplet = ?, email = ?, telephone = ?, adresse = ?, date = ? WHERE id = ?';
   try {
-    await db.execute(query, [nomComplet, email, telephone, adresse, id]);
+    await db.execute(query, [nomComplet, email, telephone, adresse, date, id]);
     res.send('Locataire mis à jour avec succès');
   } catch (err) {
     console.error('Erreur lors de la mise à jour du locataire:', err);
@@ -548,15 +548,111 @@ app.delete("/api/proprietaires/:id", async (req, res) => {
   }
 });
 
+/*******************************cela concerne  le dashboard********************* */
+
+//  cest pour recupere les statitiques des ventes
+app.get("/api/stats", async (req, res) => {
+  const connection = await db.getConnection(); // Connexion à la base de données
+
+  try {
+    // Requête pour le nombre total d'utilisateurs
+    const [userResult] = await connection.query("SELECT COUNT(*) AS locataire FROM locataires");
+    const locataire = userResult[0].locataire;
+
+    // Requête pour le nombre total de commandes
+    const [orderResult] = await connection.query("SELECT COUNT(*) AS paiement FROM paiement");
+    const paiement = orderResult[0].paiement;
+
+    // Requête pour les revenus totaux
+    const [revenueResult] = await connection.query("SELECT SUM(montant_total) AS revenue FROM paiement");
+    const revenue = revenueResult[0].revenue || 0; // Gérer les résultats nuls
+
+    // Envoyer les résultats au client
+    res.json({
+      locataire,
+      paiement,
+      revenue,
+    });
+  } catch (err) {
+    console.error("Erreur lors de la récupération des statistiques :", err);
+    res.status(500).json({ message: "Erreur interne du serveur." });
+  } finally {
+    connection.release(); // Libérer la connexion à la base de données
+  }
+});
+// cest pour le graphique des  clients
+app.get('/api/locataires', async (req, res) => {
+  try {
+    const connection = await db.getConnection();
+
+    const [results] = await connection.query(`
+      SELECT
+        DATE_FORMAT(MIN(date), '%b') AS month,    -- Mois abrégé
+        COUNT(*) AS total_locataires  -- Nombre total de locataires inscrits
+      FROM
+        locataires
+      GROUP BY
+        MONTH(date)
+      ORDER BY
+        MONTH(date);
+    `);
+
+    const allMonths = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+
+    const filledResults = allMonths.map(month => ({
+      month,
+      total_locataires: results.find(r => r.month === month)?.total_locataires || 0
+    }));
+
+    res.json(filledResults);
+  } catch (err) {
+    console.error('Erreur API locataires:', err);
+    res.status(500).json({ message: 'Erreur interne.' });
+  }
+});
+
+// cest pour afficher le graphique des commandes
+app.get('/api/paiement', async (req, res) => {
+  try {
+    const connection = await db.getConnection(); // Connexion à la base de données
+
+    // Exécuter la requête pour récupérer les montants par mois
+    const [results] = await connection.query(`
+      SELECT
+        DATE_FORMAT(MIN(date_paiement), '%b') AS month, -- Mois abrégé
+        SUM(montant_total) AS total                             -- Total des montants
+      FROM
+        paiement
+      GROUP BY
+        MONTH(date_paiement)
+      ORDER BY
+        MONTH(date_paiement);
+    `);
+    // Liste complète des mois
+    const allMonths = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+
+    // Fusionner les résultats avec tous les mois
+    const filledResults = allMonths.map(month => ({
+      month,
+      total: results.find(r => r.month === month)?.total || 0 // Si un mois est absent, le total sera 0
+    }));
+
+    res.json(filledResults); // Envoyer les résultats remplis au client
+  } catch (err) {
+    console.error('Erreur API paiements:', err);
+    res.status(500).json({ message: 'Erreur interne.' });
+  }
+});
+
 /********************************************************************* */
 
-// demain a faire inchalla
 
 
 
 
 
-  /************************************************************************************** */
+
+  /************************************************************************* */
 const PORT = process.env.PORT || 2000;
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);

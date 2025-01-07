@@ -347,87 +347,10 @@ export default {
   }
 },
 
-    async savePaiements() {
-      try {
-        // Vérifier le contrat sélectionné
-        const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
-        if (!contrat) {
-          this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
-          return;
-        }
-
-        // Calculer automatiquement le montant restant
-        const montantRestant = contrat.montant_total - this.paiementForm.montant_paye;
-        this.paiementForm.montant_restant = montantRestant;
-
-        // Faire une requête pour récupérer les informations du locataire à partir de locataire_id
-        const locataireResponse = await axios.get(`http://localhost:2000/api/locataires/${contrat.locataire_id}`);
-
-        if (!locataireResponse.data || !locataireResponse.data.nomComplet) {
-          this.$q.notify({ type: 'negative', message: 'Nom du locataire introuvable.' });
-          return;
-        }
-
-        // Ajouter les informations du locataire dans le paiement
-        const locataire = {
-          id: contrat.locataire_id,
-          nomComplet: locataireResponse.data.nomComplet // Nom complet du locataire récupéré
-        };
-
-        // Préparer les données du paiement
-        const paiement = {
-          ...this.paiementForm,
-          locataire_id: contrat.locataire_id, // ID du locataire
-          nom_locataire: locataire.nomComplet, // Nom du locataire
-          mois: Array.isArray(this.paiementForm.mois)
-            ? this.paiementForm.mois.join(",")
-            : this.paiementForm.mois,
-        };
-
-        console.log("Données envoyées au serveur :", paiement);
-
-        // Si le statut est "payé partiellement", ajuster le montant restant
-        if (paiement.statut === 'avance') {
-          const montantRestant = contrat.montant_total - paiement.montant_paye;
-          paiement.montant_restant = montantRestant;
-        }
-
-        // Envoyer les données au serveur
-        const response = await axios.post('http://localhost:2000/api/paiement', paiement);
-        console.log(response);
-        // Notification de succès
-        this.$q.notify({ type: 'positive', message: 'Paiement ajouté avec succès !' });
-        this.isDialogOpen = false;
-
-        // Actualiser la liste des paiements
-        await this.fetchPaiements();
-
-        // Générer automatiquement la facture
-        this.generateInvoice({
-          ...paiement,
-          contrat_libelle: contrat.libelle,
-        });
-
-      } catch (error) {
-        console.error("Erreur lors de l'ajout du paiement :", error);
-
-        // Gestion des erreurs de réponse serveur
-        if (error.response) {
-          this.$q.notify({
-            type: 'negative',
-            message: error.response.data.message || "Erreur lors de l'ajout du paiement.",
-          });
-        } else {
-          // Erreur réseau ou autre
-          this.$q.notify({ type: 'negative', message: "Erreur réseau. Veuillez réessayer." });
-        }
-      }
-    },
-
     // Génération de la facture
 
     generateInvoice(paiement) {
-  const doc = new jsPDF();
+     const doc = new jsPDF();
 
   // Configuration de la page
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -483,7 +406,7 @@ export default {
 },
 
 
-
+// lister les paiements
     async fetchPaiements() {
       try {
         const response = await axios.get('http://localhost:2000/api/paiement');
@@ -498,7 +421,7 @@ export default {
         console.error('Erreur lors de la récupération des paiements :', error);
       }
     },
-
+// lister les locataires
     async fetchLocataires() {
       try {
         const response = await axios.get('http://localhost:2000/api/locataires');
@@ -510,7 +433,7 @@ export default {
         console.error('Erreur lors de la récupération des contrats :', error);
       }
     },
-
+// lister les contrats
     async fetchContrats() {
       try {
         const response = await axios.get('http://localhost:2000/api/contrats');
@@ -546,42 +469,55 @@ export default {
       this.isDialogOpen = true;
     },
 
+
     async deletePaiement(id) {
-      console.log('ID reçu pour suppression :', id);
-      if (!id) {
-        this.$q.notify({ type: 'negative', message: 'ID du paiement introuvable. Impossible de supprimer.' });
-        return;
-      }
+  console.log('ID reçu pour suppression :', id);
 
-      try {
-        const confirmed = await new Promise(resolve => {
-          this.$q.dialog({
-            title: 'Confirmation',
-            message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
-            ok: {
-              label: 'Oui',
-              color: 'negative',
-            },
-            cancel: {
-              label: 'Non',
-              color: 'primary',
-            },
-            persistent: true,
-            onOk: () => resolve(true),
-            onCancel: () => resolve(false),
-          });
-        });
+  // Vérification de l'ID
+  if (!id || typeof id !== 'number') {
+    this.$q.notify({ type: 'negative', message: 'ID du paiement invalide. Impossible de supprimer.' });
+    return;
+  }
 
-        if (confirmed) {
-          await axios.delete(`http://localhost:2000/api/paiement/${id}`);
-          this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
-          this.fetchPaiements();
-        }
-      } catch (error) {
-        console.error("Erreur lors de la suppression du paiement :", error);
-        this.$q.notify({ type: 'negative', message: 'Erreur lors de la suppression du paiement.' });
+  try {
+    // Demande de confirmation
+    const confirmed = await this.$q.dialog({
+      title: 'Confirmation',
+      message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
+      ok: { label: 'Oui', color: 'negative' },
+      cancel: { label: 'Non', color: 'primary' },
+      persistent: true,
+    }).onOk(() => true).onCancel(() => false);
+
+    // Si l'utilisateur confirme la suppression
+    if (confirmed) {
+      await axios.delete(`http://localhost:2000/api/paiement/${id}`);
+      this.paiements = this.paiements.filter(p => p.id !== id); // Mise à jour locale
+      this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
+    } else {
+      this.$q.notify({ type: 'info', message: 'Suppression annulée.' });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression du paiement :", error);
+
+    // Gestion des erreurs
+    if (error.response) {
+      const status = error.response.status;
+
+      if (status === 404) {
+        this.$q.notify({ type: 'negative', message: 'Paiement introuvable. Suppression impossible.' });
+      } else if (status === 401 || status === 403) {
+        this.$q.notify({ type: 'negative', message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
+      } else {
+        this.$q.notify({ type: 'negative', message: 'Une erreur est survenue lors de la suppression.' });
       }
-    },
+    } else {
+      this.$q.notify({ type: 'negative', message: 'Erreur réseau. Veuillez réessayer.' });
+    }
+  }
+},
+
+
   },
 };
 </script>
