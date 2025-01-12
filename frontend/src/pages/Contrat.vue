@@ -83,7 +83,7 @@
       <q-dialog v-model="isDialogOpen">
         <q-card style="width: 80vw; max-width: 600px; height: 70vh; max-height: 500px;">
           <q-card-section>
-            <div class="text-h6">{{ dialogTitle }}</div>
+            <div class="text-h6 text-center">{{ dialogTitle }}</div>
           </q-card-section>
           <q-card-section>
             <q-input
@@ -328,6 +328,7 @@ export default {
         console.error('Erreur lors de la suppression du contrat :', error);
       }
     },
+
     exportTable() {
       const rows = this.contrats;
       const columns = this.columns.filter(col => col.name !== 'actions');
@@ -341,7 +342,7 @@ export default {
       ].join('\r\n');
       exportFile('contrats-export.csv', content, 'text/csv');
     },
-    
+
     exportToPDF() {
       if (!this.contrats || this.contrats.length === 0) {
         this.$q.notify({ message: 'Aucune donnée à exporter.', color: 'negative', icon: 'warning' });

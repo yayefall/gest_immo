@@ -514,52 +514,40 @@ export default {
       this.paiementForm = { ...paiement };
       this.isDialogOpen = true;
     },
+// suppression de paiement
 
-
-    async deletePaiement(id) {
-  console.log('ID reçu pour suppression :', id);
+   async deletePaiement(id) {
+       console.log('ID reçu pour suppression :', id);
 
   // Vérification de l'ID
-  if (!id || typeof id !== 'number') {
+    if (!id || typeof id !== 'number') {
     this.$q.notify({ type: 'negative', message: 'ID du paiement invalide. Impossible de supprimer.' });
     return;
   }
 
   try {
     // Demande de confirmation
-    const confirmed = await this.$q.dialog({
-      title: 'Confirmation',
-      message: 'Êtes-vous sûr de vouloir supprimer ce paiement ?',
-      ok: { label: 'Oui', color: 'negative' },
-      cancel: { label: 'Non', color: 'primary' },
-      persistent: true,
-    }).onOk(() => true).onCancel(() => false);
-
+    const confirmed = await new Promise(resolve => {
+          this.$q.dialog({
+            title: 'Confirmation',
+            message: 'Êtes-vous sûr de vouloir supprimer ce contrat ?',
+            ok: { label: 'Confirmer', color: 'negative' },
+            cancel: { label: 'Annuler', color: 'primary' },
+            persistent: true
+          }).onOk(() => resolve(true)).onCancel(() => resolve(false));
+        });
     // Si l'utilisateur confirme la suppression
     if (confirmed) {
       await axios.delete(`http://localhost:2000/api/paiement/${id}`);
       this.paiements = this.paiements.filter(p => p.id !== id); // Mise à jour locale
       this.$q.notify({ type: 'positive', message: 'Paiement supprimé avec succès.' });
+      this.fetchPaiements() ;
     } else {
       this.$q.notify({ type: 'info', message: 'Suppression annulée.' });
     }
   } catch (error) {
     console.error("Erreur lors de la suppression du paiement :", error);
 
-    // Gestion des erreurs
-    if (error.response) {
-      const status = error.response.status;
-
-      if (status === 404) {
-        this.$q.notify({ type: 'negative', message: 'Paiement introuvable. Suppression impossible.' });
-      } else if (status === 401 || status === 403) {
-        this.$q.notify({ type: 'negative', message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
-      } else {
-        this.$q.notify({ type: 'negative', message: 'Une erreur est survenue lors de la suppression.' });
-      }
-    } else {
-      this.$q.notify({ type: 'negative', message: 'Erreur réseau. Veuillez réessayer.' });
-    }
   }
 },
 

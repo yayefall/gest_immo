@@ -54,7 +54,7 @@
       <q-dialog v-model="isDialogOpen">
         <q-card style="width: 80vw; max-width: 600px; height: 70vh; max-height: 500px;">
           <q-card-section>
-            <div class="text-h6">{{ dialogTitle }}</div>
+            <div class="text-h6 text-center">{{ dialogTitle }}</div>
           </q-card-section>
           <q-card-section>
   <q-select
@@ -139,6 +139,7 @@ export default {
       proprietaires: [],
       types: ['Appartement', 'Maison', 'Bureau', 'Terrain'], // Exemples de types de biens
       columns: [
+        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
         { name: 'type', label: 'Type', align: 'left', field: 'type' },
         { name: 'adresse', label: 'Adresse', align: 'left', field: 'adresse' },
         { name: 'superficie', label: 'Superficie (m²)', align: 'left', field: 'superficie', sortable: true },
@@ -244,6 +245,7 @@ async saveBien() {
         console.error('Erreur lors de la suppression du bien :', error);
       }
     },
+
     exportTable() {
       const rows = this.biens;
       const columns = this.columns.filter(col => col.name !== 'actions');

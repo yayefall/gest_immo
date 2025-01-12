@@ -6,6 +6,19 @@ const cors = require('cors');
 const { Parser } = require("json2csv");
 const { PDFDocument, rgb } = require("pdf-lib");
 const app = express();
+
+// hachez le mot de passe avant de l'insérer dans la base :
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+
+require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const secretKey = process.env.SECRET_KEY; 
+
+
+
+// fin **********************************************************
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -26,46 +39,163 @@ db.query("SELECT 1 + 1 AS solution")
   });
 
 
-// Route pour l'authentification dans la page indexpage
 
-app.post('/api/login', async (req, res) => {
+
+/*****************************************************************************/
+
+//const secretKey = crypto.randomBytes(64).toString('hex');  // Génère une clé secrète aléatoire de 64 octets
+/*app.post('/api/login', async (req, res) => {
+  try {
     const { username, password } = req.body;
-    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
-  
-    try {
-      // Exécuter la requête avec le pool
-      const [result] = await db.query(sql, [username, password]);
-  
-      // Vérifier si un utilisateur correspondant a été trouvé
-      if (result.length > 0) {
-        // Si l'utilisateur existe, retourner un token factice (JWT)
-        res.json({ success: true, token: 'fake-jwt-token' });
-      } else {
-        // Si les informations sont incorrectes, retourner une erreur 401
-        res.status(401).json({ success: false, message: 'Username ou mot de passe incorrect' });
-      }
-    } catch (err) {
-      console.error('Erreur lors de la tentative de connexion :', err);
-      res.status(500).json({ success: false, message: 'Erreur interne du serveur' });
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Nom d\'utilisateur et mot de passe requis.' });
     }
+
+    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+    const [result] = await db.query(sql, [username, password]);
+
+    if (result.length > 0) {
+      const user = result[0];
+
+      const token = jwt.sign(
+        { username: user.username, id: user.id },
+        process.env.SECRET_KEY,  // Assurez-vous que cette clé est définie correctement
+        { expiresIn: '1h' }
+      );
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          nomComplet: user.nomComplet,
+        },
+      });
+    } else {
+      return res.status(401).json({ success: false, message: 'Identifiants invalides.' });
+    }
+  } catch (err) {
+    console.error('Erreur lors du traitement de la requête /api/login :', err); // Important pour déboguer
+    return res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
+  }
+});*/
+
+
+
+// Middleware de vérification du JWT
+/*const authenticateToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];  // Récupérer le token des en-têtes
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Token manquant' });
+  }
+
+  // Vérifier et décoder le token
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ success: false, message: 'Token invalide' });
+    }
+    req.user = decoded; // Vous pouvez ajouter les informations décodées à la requête pour les utiliser plus tard
+    next();  // Passer à la suite de la requête
   });
-  
+};
+
+// Exemple d'API protégée par JWT
+app.get('/api/userConnecte', authenticateToken, async (req, res) => {
+  const { username } = req.user;  // Utiliser l'information du token décodé
+
+  // Requête SQL pour récupérer les informations de l'utilisateur
+  const sql = 'SELECT id, username, nomComplet FROM users WHERE username = ?';
+  const [result] = await db.query(sql, [username]);
+
+  if (result.length > 0) {
+    res.json({ success: true, user: result[0] });
+  } else {
+    res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+  }
+});*/
+
+
+
+ app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+
+  try {
+    const [result] = await db.query(sql, [username, password]);
+
+    if (result.length > 0) {
+      const user = result[0];
+      const token = secretKey; // Remplacez par un vrai JWT pour plus de sécurité en production.
+
+      // Retourner les informations utilisateur et le token
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          nomComplet: user.nomComplet, // Inclure le nom complet ou toute autre information
+        },
+      });
+    } else {
+      res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+    }
+  } catch (err) {
+    console.error('Erreur lors de la tentative de connexion :', err);
+    res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
+  }
+});
+
+
   /*************************************************FIN*****************************************/
+
+app.get('/api/userConnecte', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Récupérer le token depuis les en-têtes
   
+  console.log('Token reçu:', token); // Ajoutez ceci pour vérifier le token
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Token manquant' });
+  }
+
+  try {
+    // Décoder et vérifier le token
+    const decoded = jwt.verify(token, secretKey); // Remplacez 'votre_clé_secrète' par votre clé secrète pour vérifier le token
+    console.log('Décodé:', decoded); // Affichez les informations décodées
+
+    // Si le token est valide, vous pouvez maintenant utiliser l'ID ou le username extrait du token
+    const { username } = decoded;  // Supposons que le token contienne le username
+
+    // Effectuer la requête SQL pour récupérer les informations de l'utilisateur
+    const sql = 'SELECT id, username, nomComplet, email FROM users WHERE username = ?';
+    const [result] = await db.query(sql, [username]); // Requête en utilisant le username
+
+    if (result.length > 0) {
+      console.log('Utilisateur trouvé:', result[0]); // Affichez l'utilisateur trouvé
+      return res.json({ success: true, user: result[0] });
+    } else {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+  } catch (err) {
+    console.error('Erreur lors de la récupération des informations utilisateur :', err);
+    return res.status(500).json({ success: false, message: 'Erreur interne du serveur' });
+  }
+});
+
+  
+  
+
+/************************************************************************ */
+
 // Récupérer tous les utilisateurs
 app.get('/api/users', async (req, res) => {
   try {
     // Requête SQL pour récupérer les données des utilisateurs
     const [rows] = await db.query(
-      `SELECT
-        users.id AS user_id,
-        users.nomComplet,
-        users.username,
-        users.email,
-        users.created_at,
-        users.updated_at,
-        users.is_active
-      FROM users`
+      `SELECT * FROM users`
     );
 
     // Répondre avec les données récupérées
@@ -105,7 +235,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+  /*app.delete('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await db.query(`DELETE FROM users WHERE id = ?`, [id]);
@@ -115,6 +245,23 @@ app.delete('/api/users/:id', async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la suppression de l'utilisateur." });
   }
 });
+*/
+app.delete('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: 'Utilisateur supprimé avec succès.' });
+    } else {
+      res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression :', error);
+    res.status(500).json({ message: 'Erreur lors de la suppression.' });
+  }
+});
+
+
 
 /******************************************DEBUT*********************************************/
 
@@ -511,16 +658,39 @@ app.get("/api/proprietaires", async (req, res) => {
 // Ajouter un propriétaire
 app.post("/api/proprietaires", async (req, res) => {
   const { nomComplet, email, telephone, adresse } = req.body;
+
+  // Vérification des données reçues
+  if (!nomComplet || !email || !telephone || !adresse) {
+    return res.status(400).json({ message: "Tous les champs sont requis." });
+  }
+
   try {
+    // Insertion dans la base de données
     const [result] = await db.query(
       "INSERT INTO proprietaires (nomComplet, email, telephone, adresse) VALUES (?, ?, ?, ?)",
       [nomComplet, email, telephone, adresse]
     );
-    res.status(201).json({ id: result.insertId, ...req.body });
+
+    // Réponse en cas de succès
+    res.status(201).json({
+      id: result.insertId,
+      nomComplet,
+      email,
+      telephone,
+      adresse,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'ajout du propriétaire" });
+    console.error("Erreur lors de l'ajout du propriétaire :", error);
+
+    // Gestion des erreurs spécifiques (par exemple, duplication d'email)
+    if (error.code === "ER_DUP_ENTRY") {
+      res.status(400).json({ message: "L'email est déjà utilisé." });
+    } else {
+      res.status(500).json({ message: "Erreur lors de l'ajout du propriétaire." });
+    }
   }
 });
+
 
 // Modifier un propriétaire
 app.put("/api/proprietaires/:id", async (req, res) => {

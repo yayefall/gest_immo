@@ -4,33 +4,33 @@
     <q-card>
       <q-toolbar>
         <q-btn
-          label="Nouvel Utilisateur"
+          label="Nouveau Profil"
           color="primary"
           @click="openAddDialog"
         />
       </q-toolbar>
 
       <q-table
-        :rows="users"
-        :columns="columns"
-        row-key="id"
-        no-data-label="Aucun utilisateur disponible"
-        flat
-        bordered
-        :pagination="pagination"
-        @update:pagination="val => pagination = val"
+      :rows="users"
+      :columns="columns"
+      row-key="id"
+      no-data-label="Aucun profils disponible"
+      flat
+      bordered
+      :pagination="pagination"
+      @update:pagination="val => pagination = val"
       >
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <q-btn
               class="q-mx-sm"
-              title="Modifier l'utilisateur"
+              title="Modifier le Profil"
               icon="edit"
               color="primary"
               @click="editUser(props.row)"
             />
             <q-btn
-              title="Supprimer l'utilisateur"
+              title="Supprimer le Profil"
               icon="delete"
               color="negative"
               @click="deleteUser(props.row.id)"
@@ -60,7 +60,7 @@
       <q-dialog v-model="isDialogOpen">
         <q-card style="width: 80vw; max-width: 600px;">
           <q-card-section>
-            <div class="text-h6">{{ dialogTitle }}</div>
+            <div class="text-h6 text-center">{{ dialogTitle }}</div>
           </q-card-section>
 
           <q-card-section>
@@ -126,6 +126,7 @@ export default {
     return {
       users: [],
       columns: [
+        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
         { name: 'nomComplet', label: 'Nom Complet', align: 'left', field: 'nomComplet' },
         { name: 'username', label: 'Nom d\'utilisateur', align: 'left', field: 'username' },
         { name: 'email', label: 'Email', align: 'left', field: 'email' },
@@ -145,21 +146,20 @@ export default {
   methods: {
     async fetchUsers() {
       try {
-        const response = await axios.get('http://localhost:2000/api/users');
+        const response = await axios.get("http://localhost:2000/api/users");
         this.users = response.data;
-        this.$q.notify({ type: 'positive', message: 'Liste des utilisateurs récupérée avec succès.' });
+        console.log('user:', this.users);
       } catch (error) {
-        console.error('Erreur lors de la récupération des utilisateurs :', error);
-        this.$q.notify({ type: 'negative', message: 'Erreur lors de la récupération des utilisateurs.' });
+        console.error("Erreur lors de la récupération des propriétaires :", error);
       }
     },
     openAddDialog() {
-      this.dialogTitle = 'Ajouter Utilisateur';
+      this.dialogTitle = 'Ajouter Profil';
       this.userForm = { id: null, nomComplet: '', username: '', email: '', password: '', is_active: true };
       this.isDialogOpen = true;
     },
     editUser(user) {
-      this.dialogTitle = 'Modifier Utilisateur';
+      this.dialogTitle = 'Modifier Profil';
       this.userForm = { ...user, password: '' };
       this.isDialogOpen = true;
     },
@@ -178,12 +178,13 @@ export default {
         this.$q.notify({ type: 'negative', message: 'Erreur lors de l\'enregistrement de l\'utilisateur.' });
       }
     },
+
     async deleteUser(id) {
       try {
         const confirmed = await new Promise(resolve => {
           this.$q.dialog({
             title: 'Confirmation',
-            message: 'Êtes-vous sûr de vouloir supprimer cet utilisateur ?',
+            message: 'Êtes-vous sûr de vouloir supprimer ce bien ?',
             ok: { label: 'Confirmer', color: 'negative' },
             cancel: { label: 'Annuler', color: 'primary' },
             persistent: true
@@ -191,15 +192,15 @@ export default {
         });
         if (confirmed) {
           await axios.delete(`http://localhost:2000/api/users/${id}`);
+          this.$q.notify({ type: 'positive', message: 'utilisateur supprimé avec succès.' });
           this.fetchUsers();
-          this.$q.notify({ type: 'positive', message: 'Utilisateur supprimé avec succès.' });
         }
       } catch (error) {
-        console.error('Erreur lors de la suppression de l\'utilisateur :', error);
-        this.$q.notify({ type: 'negative', message: 'Erreur lors de la suppression de l\'utilisateur.' });
+        console.error('Erreur lors de la suppression du utilisateur :', error);
       }
     },
-    exportTable() {
+
+  exportTable() {
       const rows = this.users;
       const columns = this.columns.filter(col => col.name !== 'actions');
       const content = [

@@ -64,7 +64,7 @@ export default {
     return {
       proprietaires: [],
       columns: [
-        { name: "id", label: "Numero", align: "left", field: "id", sortable: true },
+        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
         { name: "nomComplet", label: "Nom", align: "left", field: "nomComplet" },
         { name: "email", label: "Email", align: "left", field: "email" },
         { name: "telephone", label: "Téléphone", align: "left", field: "telephone" },
@@ -111,19 +111,50 @@ export default {
       this.proprietaireForm = { ...proprietaire };
       this.isDialogOpen = true;
     },
-    async saveProprietaire() {
-      try {
-        if (this.proprietaireForm.id) {
-          await axios.put(`http://localhost:2000/api/proprietaires/${this.proprietaireForm.id}`, this.proprietaireForm);
-        } else {
-          await axios.post("http://localhost:2000/api/proprietaires", this.proprietaireForm);
-        }
-        this.isDialogOpen = false;
-        this.fetchProprietaires();
-      } catch (error) {
-        console.error("Erreur lors de l'enregistrement du propriétaire :", error);
-      }
-    },
+   
+      async saveProprietaire() {
+  try {
+    // Vérification de base avant l'envoi
+    if (!this.proprietaireForm.nomComplet || !this.proprietaireForm.email || !this.proprietaireForm.telephone || !this.proprietaireForm.adresse) {
+      this.$q.notify({
+        type: "negative",
+        message: "Tous les champs sont requis. Veuillez vérifier le formulaire.",
+      });
+      return;
+    }
+
+    // Enregistrement ou mise à jour
+    if (this.proprietaireForm.id) {
+      await axios.put(
+        `http://localhost:2000/api/proprietaires/${this.proprietaireForm.id}`,
+        this.proprietaireForm
+      );
+      this.$q.notify({
+        type: "positive",
+        message: "Propriétaire mis à jour avec succès.",
+      });
+    } else {
+      await axios.post("http://localhost:2000/api/proprietaires", this.proprietaireForm);
+      this.$q.notify({
+        type: "positive",
+        message: "Propriétaire ajouté avec succès.",
+      });
+    }
+
+    // Réinitialisation et rafraîchissement des données
+    this.isDialogOpen = false;
+    this.fetchProprietaires();
+  } catch (error) {
+    console.error("Erreur lors de l'enregistrement du propriétaire :", error);
+
+    // Gestion des erreurs
+    this.$q.notify({
+      type: "negative",
+      message: "Une erreur s'est produite lors de l'enregistrement. Veuillez réessayer.",
+    });
+  }
+},
+
     async deleteProprietaire(id) {
       try {
         const confirmed = await new Promise((resolve) => {
