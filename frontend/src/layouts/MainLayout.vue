@@ -43,9 +43,9 @@
             <q-list dense style="min-width: 150px">
               <!-- Nom de l'utilisateur -->
               <q-item clickable v-close-popup>
-                <q-item-section>
+                <q-item-section v-if="user && user.nomComplet">
                   <q-icon name="account_circle" class="q-mr-sm" />
-                  {{ user?.nompComplet || "Utilisateur " }}
+                  {{ user.nomComplet || "Utilisateur " }}
                 </q-item-section>
               </q-item>
 
@@ -188,64 +188,39 @@ export default {
     });
 
 
-   onMounted(() => {
-      const token = localStorage.getItem("auth-token");
-      if (token) {
-        axios
-      .get("http://localhost:2000/api/userConnete", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        if (response.data && response.data.user) {
-          user.value = response.data.user; // Assurez-vous que `response.data.user` existe
-          isLoggedIn.value = true;
-        } else {
-          console.error("Réponse inattendue de l'API :", response.data);
-          logout();
-        }
-      })
-      .catch((error) => {
-        console.error("Erreur lors de la récupération des informations utilisateur :", error);
-        $q.notify({
-          type: "negative",
-          message: "Impossible de récupérer les informations utilisateur. Veuillez vous reconnecter.",
-        });
-        logout();
-      });
-  } else {
-    console.warn("Aucun token trouvé dans localStorage.");
-    logout();
+
+    const logout = async () => {
+  try {
+    await axios.post('http://localhost:2000/api/logout', {}, { withCredentials: true });
+    user.value = null;
+    isLoggedIn.value = false;
+    router.push("/login");
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+  }
+};
+
+
+    // Vérifier l'utilisateur connecté lors du montage du composant
+    onMounted(async () => {
+  try {
+    const response = await axios.get('http://localhost:2000/api/me', { withCredentials: true });
+
+    if (response.data.success) {
+      user.value = response.data.user;
+      isLoggedIn.value = true;
+
+      // Log des informations de l'utilisateur connecté
+      console.log("Utilisateur connecté :", response.data.user);
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération des informations utilisateur:", error);
+    isLoggedIn.value = false;
   }
 });
 
-const logout = () => {
-      localStorage.removeItem("auth-token");
-      user.value = null;
-      isLoggedIn.value = false;
-     // $q.notify({
-        //type: "info",
-        //message: "Vous êtes déconnecté.",
-     // });
-      router.push("/login");
-    };
 
-   /* onMounted(() => {
-      const token = localStorage.getItem("auth-token");
-      if (token) {
-        axios
-          .get("http://localhost:2000/api/userConnete", {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((response) => {
-            user.value = response.data.user;
-            isLoggedIn.value = true;
-          })
-          .catch(() => {
-            logout();
-          });
-      }
-    });
-*/
+
     return {
       drawer,
       isLoggedIn,
@@ -257,6 +232,76 @@ const logout = () => {
       title,
       logout,
     };
+
+
+
+
+/******************************************************* */
+  // Fonction pour déconnecter l'utilisateur
+ /* const logouts = () => {
+      localStorage.removeItem("auth-token");
+      localStorage.removeItem("user-data");
+      user.value = null;
+      isLoggedIn.value = false;
+      router.push("/login");
+    };*/
+
+   /*  // Vérifie et restaure l'état utilisateur depuis localStorage
+     const restoreSession = () => {
+      const token = localStorage.getItem("auth-token");
+      console.log('token:', token)
+      const savedUser = localStorage.getItem("user-data");
+
+      if (token && savedUser) {
+        try {
+          user.value = JSON.parse(savedUser); // Restaurer les données utilisateur
+          isLoggedIn.value = true;
+
+          // Vérifier si le token est toujours valide auprès du backend
+          axios
+            .get("http://localhost:2000/api/userConnete", {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((response) => {
+              if (response.data && response.data.user) {
+                user.value = response.data.user;
+                localStorage.setItem(
+                  "user-data",
+                  JSON.stringify(response.data.user)
+                ); // Mettre à jour les données utilisateur si nécessaire
+                isLoggedIn.value = true;
+              } else {
+                console.error(
+                  "Réponse inattendue de l'API :",
+                  response.data
+                );
+                logout();
+              }
+            })
+            .catch((error) => {
+              console.error(
+                "Erreur lors de la validation du token :",
+                error
+              );
+              logout();
+            });
+        } catch (error) {
+          console.error("Erreur lors de l'analyse des données utilisateur :", error);
+          logout();
+        }
+      } else {
+        console.warn("Aucun token ou données utilisateur trouvés.");
+        logout();
+      }
+    };*/
+
+    // Initialisation au montage du composant
+   /* onMounted(() => {
+      restoreSession();
+    });*/
+
+/*************************************************************** */
+
   },
 };
 </script>

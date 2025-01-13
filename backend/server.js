@@ -6,10 +6,10 @@ const cors = require('cors');
 const { Parser } = require("json2csv");
 const { PDFDocument, rgb } = require("pdf-lib");
 const app = express();
+const session = require('express-session');
 
 // hachez le mot de passe avant de l'insérer dans la base :
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
@@ -19,10 +19,15 @@ const secretKey = process.env.SECRET_KEY;
 
 // fin **********************************************************
 
-app.use(cors());
+//app.use(cors());
+
+app.use(cors({
+  origin: 'http://localhost:9000',  // L'URL de votre frontend
+  credentials: true,  // Permet d'envoyer et de recevoir des cookies
+}));
 app.use(bodyParser.json());
 
-
+// connexion pour la base de donnee
 const db = mysql.createPool({
   host: 'localhost',
   user: 'root',
@@ -38,106 +43,67 @@ db.query("SELECT 1 + 1 AS solution")
     console.error("Erreur :", err);
   });
 
-
-
+// connexion pour la session
+app.use(session({
+  secret: '7d2c6c01f47b312c5bf7457aa9171f46c85e4e1c9b37f2a571eb2397b35cfa34', // Une clé secrète pour la session
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }  // Mettre à `true` si vous utilisez HTTPS
+}));
 
 /*****************************************************************************/
 
-//const secretKey = crypto.randomBytes(64).toString('hex');  // Génère une clé secrète aléatoire de 64 octets
+// cest pour  haché les mots de passse deja existtes
+async function hashExistingPasswords() {
+  try {
+    // Récupérer tous les utilisateurs
+    const [users] = await db.query("SELECT id, password FROM users");
+
+    for (const user of users) {
+      if (user.password) {
+        // Hacher le mot de passe
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+
+        // Mettre à jour le mot de passe dans la base de données
+        await db.query("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, user.id]);
+        console.log(`Mot de passe pour l'utilisateur ID ${user.id} haché avec succès.`);
+      }
+    }
+    console.log("Tous les mots de passe existants ont été hachés.");
+  } catch (error) {
+    console.error("Erreur lors du hachage des mots de passe existants :", error);
+  }
+}
+
+hashExistingPasswords();
+
+// cest la route pour se connecter  elle marche bien avec hasher
 /*app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Nom d\'utilisateur et mot de passe requis.' });
-    }
-
-    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
-    const [result] = await db.query(sql, [username, password]);
-
-    if (result.length > 0) {
-      const user = result[0];
-
-      const token = jwt.sign(
-        { username: user.username, id: user.id },
-        process.env.SECRET_KEY,  // Assurez-vous que cette clé est définie correctement
-        { expiresIn: '1h' }
-      );
-
-      return res.json({
-        success: true,
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          nomComplet: user.nomComplet,
-        },
-      });
-    } else {
-      return res.status(401).json({ success: false, message: 'Identifiants invalides.' });
-    }
-  } catch (err) {
-    console.error('Erreur lors du traitement de la requête /api/login :', err); // Important pour déboguer
-    return res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
-  }
-});*/
-
-
-
-// Middleware de vérification du JWT
-/*const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];  // Récupérer le token des en-têtes
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Token manquant' });
-  }
-
-  // Vérifier et décoder le token
-  jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ success: false, message: 'Token invalide' });
-    }
-    req.user = decoded; // Vous pouvez ajouter les informations décodées à la requête pour les utiliser plus tard
-    next();  // Passer à la suite de la requête
-  });
-};
-
-// Exemple d'API protégée par JWT
-app.get('/api/userConnecte', authenticateToken, async (req, res) => {
-  const { username } = req.user;  // Utiliser l'information du token décodé
-
-  // Requête SQL pour récupérer les informations de l'utilisateur
-  const sql = 'SELECT id, username, nomComplet FROM users WHERE username = ?';
-  const [result] = await db.query(sql, [username]);
-
-  if (result.length > 0) {
-    res.json({ success: true, user: result[0] });
-  } else {
-    res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
-  }
-});*/
-
-
-
- app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-  const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+
+  // Récupérer l'utilisateur par le nom d'utilisateur
+  const sql = 'SELECT * FROM users WHERE username = ?';
 
   try {
-    const [result] = await db.query(sql, [username, password]);
+    const [result] = await db.query(sql, [username]);
 
     if (result.length > 0) {
       const user = result[0];
-      const token = secretKey; // Remplacez par un vrai JWT pour plus de sécurité en production.
 
-      // Retourner les informations utilisateur et le token
+      // Comparer le mot de passe fourni avec le mot de passe haché stocké
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+      }
+
+      // Si le mot de passe est valide, vous pouvez retourner les informations de l'utilisateur
       res.json({
         success: true,
-        token,
         user: {
           id: user.id,
           username: user.username,
-          nomComplet: user.nomComplet, // Inclure le nom complet ou toute autre information
+          nomComplet: user.nomComplet, // Inclure d'autres informations utilisateur si nécessaire
         },
       });
     } else {
@@ -147,10 +113,79 @@ app.get('/api/userConnecte', authenticateToken, async (req, res) => {
     console.error('Erreur lors de la tentative de connexion :', err);
     res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
   }
+});*/
+
+
+/*********fin de hacher les password deja existé Fonction pour se connectée************** */
+
+/**************************** cest pour tester la session*************************************** */
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const sql = 'SELECT * FROM users WHERE username = ?';
+
+  try {
+    const [result] = await db.query(sql, [username]);
+    if (result.length > 0) {
+      const user = result[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      console.log("Mot de passe validé :", isPasswordValid);  // Ajoutez un log ici
+
+      if (isPasswordValid) {
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.nomComplet = user.nomComplet;
+
+        res.json({
+          success: true,
+          message: 'Connexion réussie',
+          user: {
+            id: user.id,
+            username: user.username,
+            nomComplet: user.nomComplet,
+          },
+        });
+      } else {
+        console.log("Mot de passe incorrect");
+        res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+      }
+    } else {
+      console.log("Utilisateur non trouvé");
+      res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+    }
+  } catch (err) {
+    console.error('Erreur lors de la tentative de connexion :', err);
+    res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
+  }
 });
 
 
-  /*************************************************FIN*****************************************/
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Erreur lors de la déconnexion.' });
+    }
+    res.json({ success: true, message: 'Déconnexion réussie' });
+  });
+});
+
+app.get('/api/me', (req, res) => {
+  // Vérifiez si la session contient des informations utilisateur
+  if (req.session.userId) {
+    res.json({
+      success: true,
+      user: {
+        id: req.session.userId,
+        username: req.session.username,
+        nomComplet: req.session.nomComplet
+      }
+    });
+  } else {
+    res.status(401).json({ success: false, message: 'Utilisateur non authentifié.' });
+  }
+});
+  /***************************** autres fonctions**************************************/
+
 
 app.get('/api/userConnecte', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1]; // Récupérer le token depuis les en-têtes
@@ -185,8 +220,6 @@ app.get('/api/userConnecte', async (req, res) => {
   }
 });
 
-  
-  
 
 /************************************************************************ */
 
@@ -206,21 +239,69 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res) => {
+// route pour ajouter le user
+app.post("/api/users", async (req, res) => {
+  const { nomComplet, email, username, password } = req.body;
+
   try {
-    const { nomComplet, username, email, password } = req.body;
-    const [result] = await db.query(
-      `INSERT INTO users (nomComplet, username, email, password) VALUES (?, ?, ?, ?)`,
-      [nomComplet, username, email, password]
+    // Hacher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insérer l'utilisateur dans la base de données
+    await db.query(
+      "INSERT INTO users (nomComplet, email, username, password) VALUES (?, ?, ?, ?)",
+      [nomComplet, email, username, hashedPassword]
     );
-    res.json({ id: result.insertId, message: 'Utilisateur ajouté avec succès.' });
+
+    res.status(201).json({ message: "Utilisateur créé avec succès." });
   } catch (error) {
-    console.error("Erreur lors de l'ajout d'un utilisateur :", error);
-    res.status(500).json({ message: "Erreur lors de l'ajout de l'utilisateur." });
+    console.error("Erreur lors de la création de l'utilisateur :", error);
+    res.status(500).json({ message: "Erreur interne du serveur." });
   }
 });
 
+// route pour modifier le user
+
+
 app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nomComplet, username, email, password, is_active } = req.body;
+
+    // Vérifier si un mot de passe est fourni
+    let hashedPassword = null;
+    if (password) {
+      const saltRounds = 10; // Ajustez le nombre de rounds selon vos besoins
+      hashedPassword = await bcrypt.hash(password, saltRounds);
+    }
+
+    // Construire la requête SQL et les paramètres
+    const updateQuery = `
+      UPDATE users
+      SET
+        nomComplet = ?,
+        username = ?,
+        email = ?,
+        ${password ? 'password = ?,' : ''} 
+        is_active = ?
+      WHERE id = ?
+    `;
+
+    const params = password
+      ? [nomComplet, username, email, hashedPassword, is_active, id]
+      : [nomComplet, username, email, is_active, id];
+
+    // Exécuter la requête SQL
+    await db.query(updateQuery.replace(/,\s*WHERE/, ' WHERE'), params);
+
+    res.json({ message: 'Utilisateur mis à jour avec succès.' });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
+    res.status(500).json({ message: "Erreur lors de la mise à jour de l'utilisateur." });
+  }
+});
+
+/*app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { nomComplet, username, email,password ,is_active } = req.body;
@@ -233,19 +314,9 @@ app.put('/api/users/:id', async (req, res) => {
     console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
     res.status(500).json({ message: "Erreur lors de la mise à jour de l'utilisateur." });
   }
-});
+});*/
 
-  /*app.delete('/api/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query(`DELETE FROM users WHERE id = ?`, [id]);
-    res.json({ message: 'Utilisateur supprimé avec succès.' });
-  } catch (error) {
-    console.error("Erreur lors de la suppression de l'utilisateur :", error);
-    res.status(500).json({ message: "Erreur lors de la suppression de l'utilisateur." });
-  }
-});
-*/
+// route pour supprimer le user
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   try {

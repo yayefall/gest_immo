@@ -22,13 +22,13 @@
       >
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
-            <q-btn
+            <!--<q-btn
               class="q-mx-sm"
               title="Modifier le Profil"
               icon="edit"
               color="primary"
               @click="editUser(props.row)"
-            />
+            />-->
             <q-btn
               title="Supprimer le Profil"
               icon="delete"

@@ -68,6 +68,7 @@ export default defineComponent({
   setup() {
     const $q = useQuasar(); // Initialiser $q
     const username = ref("");
+    const errorMessage = ref('');
     const password = ref("");
     const passwordVisible = ref(false);
     const isLoggedIn = ref(false);
@@ -75,26 +76,47 @@ export default defineComponent({
     const user = ref(null);
     const router = useRouter()
 
-    // Vérifier si l'utilisateur est déjà connecté au chargement de la page
-  /* onMounted(() => {
-      const token = localStorage.getItem("auth-token");
-      if (token) {
-        axios
-          .get("http://localhost:2000/api/userConnete", {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((response) => {
-            user.value = response.data.user;
-            isLoggedIn.value = true;
-          })
-          .catch(() => {
-            logout();
-          });
-      }
-    });*/
 
 
-  const submitLogin = async () => {
+const submitLogin = async () => {
+  try {
+    const response = await axios.post('http://localhost:2000/api/login', {
+      username: username.value,
+      password: password.value,
+    }, {
+      withCredentials: true  // Cette option permet d'envoyer les cookies de session avec la requête
+    });
+
+    if (response.data.success) {
+      user.value = response.data.user;
+      isLoggedIn.value = true;
+      router.push("/dashboard");
+      console.log("Connexion réussie");
+    } else {
+      errorMessage.value = response.data.message || 'Nom d’utilisateur ou mot de passe incorrect.';
+    }
+  } catch (error) {
+    console.error("Erreur de connexion:", error);
+    errorMessage.value = 'Erreur de connexion, veuillez réessayer.';
+  }
+};
+
+   return {
+      username,
+      password,
+      isLoggedIn,
+      passwordVisible,
+      submitLogin,
+      isLoading,
+      errorMessage
+    };
+
+
+
+
+
+
+  /*const login = async () => {
       isLoading.value = true;
       try {
         const response = await axios.post("http://localhost:2000/api/login", {
@@ -103,9 +125,10 @@ export default defineComponent({
         });
 
         // Sauvegarder le token et infos utilisateur
-        localStorage.setItem("auth-token", response.data.token);
-        user.value = response.data.user;
-        isLoggedIn.value = true;
+         localStorage.setItem("auth-token", response.data.token);
+         localStorage.setItem("user-data", JSON.stringify(response.data.user));
+          user.value = response.data.user;
+         isLoggedIn.value = true;
 
         // Réinitialiser les champs du formulaire
         username.value = "";
@@ -132,18 +155,11 @@ export default defineComponent({
         isLoading.value = false;
       }
 
-    };
+    };*/
 
 
-    return {
-      username,
-      password,
-      isLoggedIn,
-      passwordVisible,
-      submitLogin,
-      isLoading,
-    };
   },
+
 });
 </script>
 
