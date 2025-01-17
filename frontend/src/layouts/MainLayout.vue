@@ -42,12 +42,12 @@
           <q-menu>
             <q-list dense style="min-width: 150px">
               <!-- Nom de l'utilisateur -->
-              <q-item clickable v-close-popup>
+             <!--  <q-item clickable v-close-popup>
                 <q-item-section v-if="user && user.nomComplet">
                   <q-icon name="account_circle" class="q-mr-sm" />
-                  {{ user.nomComplet || "Utilisateur " }}
+                 {{ user.nomComplet || "Utilisateur " }}
                 </q-item-section>
-              </q-item>
+              </q-item>-->
 
               <q-separator />
 
@@ -189,7 +189,7 @@ export default {
 
 
 
-    const logout = async () => {
+   /* const logout = async () => {
   try {
     await axios.post('http://localhost:2000/api/logout', {}, { withCredentials: true });
     user.value = null;
@@ -198,28 +198,40 @@ export default {
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error);
   }
-};
+};*/
 
+    onMounted(async () => {
+      try {
+        const response = await axios.get('http://localhost:2000/api/me', {
+          withCredentials: true,
+        });
+        if (response.data.success) {
+          user.value = response.data.user;
+          isLoggedIn.value = true;
+        } else {
+          isLoggedIn.value = false;
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des informations utilisateur:', error);
+          isLoggedIn.value = false;
+    }
+  });
 
     // Vérifier l'utilisateur connecté lors du montage du composant
-    onMounted(async () => {
-  try {
-    const response = await axios.get('http://localhost:2000/api/me', { withCredentials: true });
-
+   const logout = async () => {
+   try {
+    const response = await axios.post('http://localhost:2000/api/logout', {}, {
+      withCredentials: true,
+    });
     if (response.data.success) {
-      user.value = response.data.user;
-      isLoggedIn.value = true;
-
-      // Log des informations de l'utilisateur connecté
-      console.log("Utilisateur connecté :", response.data.user);
+      isLoggedIn.value = false;
+      user.value = null;
+      router.push('/login'); // Redirige vers la page de connexion
     }
   } catch (error) {
-    console.error("Erreur lors de la récupération des informations utilisateur:", error);
-    isLoggedIn.value = false;
+    console.error('Erreur lors de la déconnexion:', error);
   }
-});
-
-
+};
 
     return {
       drawer,

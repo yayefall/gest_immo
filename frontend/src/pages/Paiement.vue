@@ -74,6 +74,7 @@
               outlined
               @update:model-value="onContratChange"
             />
+
             <q-input
               v-model="paiementForm.montant_total"
               label="Loyer Mensuel"
@@ -81,6 +82,18 @@
               outlined
               required
               readonly
+            />
+            <q-select
+              v-model="paiementForm.mois"
+              :options="moisOptions"
+              label="Mois payé"
+              outlined
+              multiple
+              emit-value
+              map-options
+              clearable
+              required
+              @update:model-value="onMoisChange"
             />
             <q-input
               v-model="paiementForm.montant_paye"
@@ -97,24 +110,7 @@
               required
             />
 
-            <q-select
-              v-model="paiementForm.mois"
-              :options="moisOptions"
-              label="Mois payé"
-              outlined
-              multiple
-              emit-value
-              map-options
-              clearable
-              required
-              @input="onMoisChange"
-            />
-            <q-input
-              v-model="paiementForm.montant_restant"
-              label="Montant Restant"
-              outlined
-              readonly
-            />
+
             <q-select
               v-model="paiementForm.methode_paiement"
               :options="['Espèces','Orange Money','Wave']"
@@ -124,10 +120,16 @@
             />
             <q-select
               v-model="paiementForm.statut"
-              :options="['payé', 'avance']"
+              :options="['payé', 'avance','payer_plus']"
               label="Statut"
               outlined
               required
+            />
+            <q-input
+              v-model="paiementForm.montant_restant"
+              label="Montant Restant"
+              outlined
+              readonly
             />
           </q-card-section>
 
@@ -175,7 +177,7 @@ export default {
         { name: "statut", label: "Statut", align: "left", field: "statut" },
         { name: "actions", label: "Actions", align: "center" },
       ],
-      pagination: { page: 1, rowsPerPage: 10 },
+      pagination: { page: 1, rowsPerPage: 5 },
       isDialogOpen: false,
       dialogTitle: "Ajouter Paiement",
       paiementForm: {
@@ -206,197 +208,122 @@ export default {
   },
 
   methods: {
-
   // Quand un contrat est sélectionné
   onContratChange() {
       const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
       if (contrat) {
         this.paiementForm.montant_total = contrat.montant_total;
-        this.calculateMontantRestant();  // Recalcule le montant restant
+        this.calculateMontantTotal();  // Recalcule le montant restant
       }
     },
 
     // Quand un ou plusieurs mois sont sélectionnés
     onMoisChange() {
-      this.calculateMontantRestant();  // Recalcule le montant restant à chaque changement
+      this.calculateMontantTotal();  // Recalcule le montant restant à chaque changement
     },
 
     // Calcul du montant total en fonction des mois sélectionnés
-    calculateMontantRestant() {
-      if (this.paiementForm.mois.length >= 2) {
-        const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
-        if (contrat) {
-          this.paiementForm.montant_total = contrat.montant_total * this.paiementForm.mois.length;
-        }
-      }
-    },
+    calculateMontantTotal() {
+  const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
+  if (!contrat) {
+    this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
+    return;
+  }
+
+  // Vérifier si des mois sont sélectionnés
+  const moisSelectionnes = Array.isArray(this.paiementForm.mois) ? this.paiementForm.mois.length : 0;
+
+  if (moisSelectionnes > 0) {
+    // Calculer le montant total en fonction du nombre de mois sélectionnés
+    this.paiementForm.montant_total = contrat.montant_total * moisSelectionnes;
+  } else {
+    // Réinitialiser le montant total si aucun mois n'est sélectionné
+    this.paiementForm.montant_total = contrat.montant_total;
+  }
+},
+
     // ajouter un paiement
 
- async savePaiement() {
-   try {
-    // Vérifier le contrat sélectionné
+    async savePaiement() {
+  try {
     const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
     if (!contrat) {
-      this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
-      return;
+      return this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
     }
 
-    if (!contrat.montant_total) {
-      this.$q.notify({ type: 'negative', message: 'Montant total du contrat introuvable.' });
-      return;
+    const montantPaye = parseFloat(this.paiementForm.montant_paye);
+    if (isNaN(montantPaye) || montantPaye <= 0) {
+      return this.$q.notify({ type: 'negative', message: 'Le montant payé doit être un nombre valide supérieur à zéro.' });
     }
 
-    // Validation du montant payé
-    if (!this.paiementForm.montant_paye || isNaN(parseFloat(this.paiementForm.montant_paye))) {
-      this.$q.notify({ type: 'negative', message: 'Le montant payé doit être un nombre valide.' });
-      return;
+    // Calculer le montant total en fonction des mois sélectionnés
+    this.calculateMontantTotal();
+
+    const montantTotal = parseFloat(this.paiementForm.montant_total);
+
+    const statut = this.paiementForm.statut;
+    if (!['avance', 'payé', 'payer_plus'].includes(statut)) {
+      return this.$q.notify({ type: 'negative', message: 'Statut de paiement invalide.' });
     }
 
-    // Calcul du montant restant
-    const montantRestant = parseFloat(contrat.montant_total) - parseFloat(this.paiementForm.montant_paye);
-    this.paiementForm.montant_restant = montantRestant;
-
-    // Vérification de la validité de "mois"
-    if (!this.paiementForm.mois || (Array.isArray(this.paiementForm.mois) && this.paiementForm.mois.length === 0)) {
-      this.$q.notify({ type: 'negative', message: 'Veuillez sélectionner un mois valide.' });
-      return;
+    // Calculer le montant restant ou le surplus
+    let montantRestant = 0;
+    if (statut === 'avance') {
+      montantRestant = montantTotal - montantPaye;
+      if (montantRestant < 0) {
+        return this.$q.notify({ type: 'negative', message: 'Le montant payé dépasse le montant total pour une avance.' });
+      }
+    } else if (statut === 'payé') {
+      if (montantPaye !== montantTotal) {
+        return this.$q.notify({ type: 'negative', message: 'Pour payer entièrement, le montant payé doit être égal au montant total.' });
+      }
+      montantRestant = 0;
+    } else if (statut === 'payer_plus') {
+      montantRestant = montantPaye - montantTotal;
+      if (montantRestant <= 0) {
+        return this.$q.notify({ type: 'negative', message: 'Pour payer plus, le montant payé doit dépasser le montant total.' });
+      }
     }
 
-    // Récupérer les informations du locataire
     const locataireResponse = await axios.get(`http://localhost:2000/api/locataires/${contrat.locataire_id}`);
-    if (!locataireResponse.data || !locataireResponse.data.nomComplet) {
-      this.$q.notify({ type: 'negative', message: 'Nom du locataire introuvable.' });
-      return;
+    const locataire = locataireResponse.data;
+    if (!locataire || !locataire.nomComplet) {
+      return this.$q.notify({ type: 'negative', message: 'Nom du locataire introuvable.' });
     }
 
-    const locataire = {
-      id: contrat.locataire_id,
-      nomComplet: locataireResponse.data.nomComplet,
-    };
-
-    // Préparer les données du paiement
     const paiement = {
       ...this.paiementForm,
       locataire_id: contrat.locataire_id,
       nom_locataire: locataire.nomComplet,
-      mois: Array.isArray(this.paiementForm.mois)
-        ? this.paiementForm.mois.join(",")
-        : this.paiementForm.mois,
-      //statut: montantRestant > 0 ? 'avance' : 'payé',
-      statut: this.paiementForm.montant_paye < this.paiementForm.montant_total ? "avance" : "payé",
+      mois: Array.isArray(this.paiementForm.mois) ? this.paiementForm.mois.join(",") : this.paiementForm.mois,
+      montant_restant: statut === 'payer_plus' ? null : montantRestant, // `null` si "payer_plus"
+      montant_surplus: statut === 'payer_plus' ? montantRestant : null, // Montant surplus si "payer_plus"
+      statut,
     };
 
-    // Envoyer les données au serveur
     const response = await axios.post('http://localhost:2000/api/paiement', paiement);
 
-    // Notification de succès
-    this.$q.notify({ type: 'positive', message: 'Paiement ajouté avec succès !' });
+    this.$q.notify({ type: 'positive', message: 'Paiement enregistré avec succès !' });
     this.isDialogOpen = false;
-
-    // Actualiser la liste des paiements
     await this.fetchPaiements();
 
-    // Générer automatiquement la facture
     this.generateInvoice({
       ...paiement,
       contrat_libelle: contrat.libelle,
     });
-
   } catch (error) {
     console.error("Erreur lors de l'ajout du paiement :", error);
-
-    if (error.response) {
-      this.$q.notify({
-        type: 'negative',
-        message: error.response.data.message || "Erreur lors de l'ajout du paiement.",
-      });
-    } else {
-      this.$q.notify({ type: 'negative', message: "Erreur réseau. Veuillez réessayer." });
-    }
+    const message = error.response?.data?.message || 'Erreur réseau. Veuillez réessayer.';
+    this.$q.notify({ type: 'negative', message });
   }
 },
 
-    async savePaiements() {
-      try {
-        // Vérifier le contrat sélectionné
-        const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
-        if (!contrat) {
-          this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
-          return;
-        }
 
-        // Calculer automatiquement le montant restant
-        const montantRestant = contrat.montant_total - this.paiementForm.montant_paye;
-        this.paiementForm.montant_restant = montantRestant;
-
-        // Faire une requête pour récupérer les informations du locataire à partir de locataire_id
-        const locataireResponse = await axios.get(`http://localhost:2000/api/locataires/${contrat.locataire_id}`);
-
-        if (!locataireResponse.data || !locataireResponse.data.nomComplet) {
-          this.$q.notify({ type: 'negative', message: 'Nom du locataire introuvable.' });
-          return;
-        }
-
-        // Ajouter les informations du locataire dans le paiement
-        const locataire = {
-          id: contrat.locataire_id,
-          nomComplet: locataireResponse.data.nomComplet // Nom complet du locataire récupéré
-        };
-
-        // Préparer les données du paiement
-        const paiement = {
-          ...this.paiementForm,
-          locataire_id: contrat.locataire_id, // ID du locataire
-          nom_locataire: locataire.nomComplet, // Nom du locataire
-          mois: Array.isArray(this.paiementForm.mois)
-            ? this.paiementForm.mois.join(",")
-            : this.paiementForm.mois,
-        };
-
-        console.log("Données envoyées au serveur :", paiement);
-
-        // Si le statut est "payé partiellement", ajuster le montant restant
-        if (paiement.statut === 'avance') {
-          const montantRestant = contrat.montant_total - paiement.montant_paye;
-          paiement.montant_restant = montantRestant;
-        }
-
-        // Envoyer les données au serveur
-        const response = await axios.post('http://localhost:2000/api/paiement', paiement);
-        console.log(response);
-        // Notification de succès
-        this.$q.notify({ type: 'positive', message: 'Paiement ajouté avec succès !' });
-        this.isDialogOpen = false;
-
-        // Actualiser la liste des paiements
-        await this.fetchPaiements();
-
-        // Générer automatiquement la facture
-        this.generateInvoice({
-          ...paiement,
-          contrat_libelle: contrat.libelle,
-        });
-
-      } catch (error) {
-        console.error("Erreur lors de l'ajout du paiement :", error);
-
-        // Gestion des erreurs de réponse serveur
-        if (error.response) {
-          this.$q.notify({
-            type: 'negative',
-            message: error.response.data.message || "Erreur lors de l'ajout du paiement.",
-          });
-        } else {
-          // Erreur réseau ou autre
-          this.$q.notify({ type: 'negative', message: "Erreur réseau. Veuillez réessayer." });
-        }
-      }
-    },
 
     // Génération de la facture
 
-    generateInvoice(paiement) {
-     const doc = new jsPDF();
+generateInvoice(paiement) {
+  const doc = new jsPDF();
 
   // Configuration de la page
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -423,9 +350,17 @@ export default {
   doc.setTextColor(60, 60, 60);
   doc.text(`Locataire : ${paiement.nom_locataire}`, 20, 50);
   doc.text(`Date de Paiement : ${new Date(paiement.date_paiement).toLocaleDateString()}`, 20, 60);
-  doc.text(`Montant Total : ${paiement.montant_total} FCFA`, 20, 70);
+  doc.text(`Loyer Mensuel : ${paiement.montant_total} FCFA`, 20, 70);
   doc.text(`Montant Payé : ${paiement.montant_paye} FCFA`, 20, 80);
-  doc.text(`Montant Restant : ${paiement.montant_restant} FCFA`, 20, 90);
+
+  // Afficher les montants en fonction du statut
+  if (paiement.statut === "avance") {
+    doc.text(`Montant Restant : ${paiement.montant_restant} FCFA`, 20, 90);
+  } else if (paiement.statut === "payer_plus") {
+    doc.text(`Montant Surplus : ${paiement.montant_paye - paiement.montant_total} FCFA`, 20, 90);
+  }
+  // Ne pas afficher `montant_restant` ou `montant_surplus` pour le statut "payer"
+
   doc.text(`Mois Payé : ${paiement.mois}`, 20, 100);
   doc.text(`Méthode de Paiement : ${paiement.methode_paiement}`, 20, 110);
 
@@ -452,7 +387,7 @@ export default {
 },
 
 
-
+// lister tous les paiements
     async fetchPaiements() {
       try {
         const response = await axios.get('http://localhost:2000/api/paiement');
@@ -467,7 +402,7 @@ export default {
         console.error('Erreur lors de la récupération des paiements :', error);
       }
     },
-
+//lister tous les contrats
     async fetchLocataires() {
       try {
         const response = await axios.get('http://localhost:2000/api/locataires');
@@ -479,7 +414,7 @@ export default {
         console.error('Erreur lors de la récupération des contrats :', error);
       }
     },
-
+// lister les tous les contrats
     async fetchContrats() {
       try {
         const response = await axios.get('http://localhost:2000/api/contrats');
@@ -493,7 +428,7 @@ export default {
         console.error('Erreur lors de la récupération des contrats :', error);
       }
     },
-
+// ouvrir le dialogue
     openAddDialog() {
       this.dialogTitle = "Ajouter Paiement";
       this.paiementForm = {
@@ -508,7 +443,7 @@ export default {
       };
       this.isDialogOpen = true;
     },
-
+// Modifier un paiement
     editPaiement(paiement) {
       this.dialogTitle = 'Modifier Paiement';
       this.paiementForm = { ...paiement };
@@ -550,7 +485,7 @@ export default {
 
   }
 },
-
+// exporter  les données du paiement en fichier excel
    exportTable() {
       const rows = this.paiements;
       const columns = this.columns.filter(col => col.name !== 'actions');
@@ -564,7 +499,9 @@ export default {
       ].join('\r\n');
       exportFile('Paiement-export.csv', content, 'text/csv');
     },
-    exportToPDF() {
+    // exporter  les données du paiement en pdf
+
+   exportToPDF() {
       if (!this.paiements || this.paiements.length === 0) {
         this.$q.notify({ message: 'Aucune donnée à exporter.', color: 'negative', icon: 'warning' });
         return;

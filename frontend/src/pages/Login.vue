@@ -78,28 +78,45 @@ export default defineComponent({
 
 
 
-const submitLogin = async () => {
+    const submitLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:2000/api/login', {
-      username: username.value,
-      password: password.value,
-    }, {
-      withCredentials: true  // Cette option permet d'envoyer les cookies de session avec la requête
-    });
+    const response = await axios.post(
+      'http://localhost:2000/api/login',
+      {
+        username: username.value,
+        password: password.value,
+      },
+      {
+        withCredentials: true, // Cette option permet d'envoyer les cookies de session avec la requête
+      }
+    );
 
-    if (response.data.success) {
+    if(response.data.success) {
       user.value = response.data.user;
       isLoggedIn.value = true;
-      router.push("/dashboard");
-      console.log("Connexion réussie");
+      $q.notify({
+        type: 'positive',
+        message: 'Connexion réussie ! Bienvenue, ' + response.data.user.nomComplet,
+      });
+      router.push('/dashboard');
+      console.log('Connexion réussie');
     } else {
       errorMessage.value = response.data.message || 'Nom d’utilisateur ou mot de passe incorrect.';
+      $q.notify({
+        type: 'negative',
+        message: errorMessage.value,
+      });
     }
   } catch (error) {
-    console.error("Erreur de connexion:", error);
+    console.error('Erreur de connexion:', error);
     errorMessage.value = 'Erreur de connexion, veuillez réessayer.';
+    $q.notify({
+      type: 'negative',
+      message: 'Erreur de connexion, veuillez réessayer.',
+    });
   }
 };
+
 
    return {
       username,

@@ -44,16 +44,24 @@ db.query("SELECT 1 + 1 AS solution")
   });
 
 // connexion pour la session
+
 app.use(session({
   secret: '7d2c6c01f47b312c5bf7457aa9171f46c85e4e1c9b37f2a571eb2397b35cfa34', // Une clé secrète pour la session
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }  // Mettre à `true` si vous utilisez HTTPS
+  cookie: {
+    secure: true, // HTTPS obligatoire
+    httpOnly: true, // Protège contre les attaques XSS
+    sameSite: 'strict', // Limite le partage des cookies entre domaines
+    maxAge: 60 * 60 * 1000 // 1 heure (en millisecondes)
+// maxAge: 24 * 60 * 60 * 1000 // 1 jour
+  }
 }));
 
 /*****************************************************************************/
 
 // cest pour  haché les mots de passse deja existtes
+/*
 async function hashExistingPasswords() {
   try {
     // Récupérer tous les utilisateurs
@@ -76,6 +84,9 @@ async function hashExistingPasswords() {
 }
 
 hashExistingPasswords();
+*/
+/*********fin de hacher les password deja existé F************** */
+
 
 // cest la route pour se connecter  elle marche bien avec hasher
 /*app.post('/api/login', async (req, res) => {
@@ -115,62 +126,87 @@ hashExistingPasswords();
   }
 });*/
 
-
-/*********fin de hacher les password deja existé Fonction pour se connectée************** */
-
 /**************************** cest pour tester la session*************************************** */
+
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-  const sql = 'SELECT * FROM users WHERE username = ?';
 
   try {
-    const [result] = await db.query(sql, [username]);
-    if (result.length > 0) {
-      const user = result[0];
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      console.log("Mot de passe validé :", isPasswordValid);  // Ajoutez un log ici
-
-      if (isPasswordValid) {
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.nomComplet = user.nomComplet;
-
-        res.json({
-          success: true,
-          message: 'Connexion réussie',
-          user: {
-            id: user.id,
-            username: user.username,
-            nomComplet: user.nomComplet,
-          },
-        });
-      } else {
-        console.log("Mot de passe incorrect");
-        res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
-      }
-    } else {
-      console.log("Utilisateur non trouvé");
-      res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+    // Vérifiez que les données nécessaires sont fournies
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: "Nom d'utilisateur et mot de passe requis." });
     }
+
+    // Requête pour récupérer l'utilisateur par son nom d'utilisateur
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    const [result] = await db.query(sql, [username]);
+
+    // Vérifiez si l'utilisateur existe
+    if (result.length === 0) {
+      console.log('Utilisateur non trouvé.');
+      return res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+    }
+
+    const user = result[0];
+
+    // Journaux pour déboguer les données de l'utilisateur
+    console.log('Nom d’utilisateur fourni :', username);
+    console.log('Utilisateur trouvé :', user);
+    console.log('Mot de passe haché dans la base :', user.password);
+    console.log('Mot de passe fourni :', password);
+    // Comparez le mot de passe fourni avec le mot de passe haché stocké
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    console.log('Validation du mot de passe :', isPasswordValid);
+
+    if (!isPasswordValid) {
+      // Si le mot de passe est incorrect
+      console.log('Mot de passe incorrect.');
+      return res.status(401).json({ success: false, message: 'Nom d’utilisateur ou mot de passe incorrect.' });
+    }
+
+    // Si le mot de passe est correct, créez la session utilisateur
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.nomComplet = user.nomComplet;
+
+    // Réponse en cas de succès
+    res.json({
+      success: true,
+      message: 'Connexion réussie.',
+      user: {
+        id: user.id,
+        username: user.username,
+        nomComplet: user.nomComplet,
+      },
+    });
   } catch (err) {
+    // Log l'erreur pour débogage
     console.error('Erreur lors de la tentative de connexion :', err);
+
+    // Réponse en cas d'erreur serveur
     res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
   }
 });
 
 
+// fonction pour  faire  deconnecter l'appli
 app.post('/api/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      return res.status(500).json({ success: false, message: 'Erreur lors de la déconnexion.' });
+      console.error('Erreur lors de la déconnexion:', err);
+      return res.status(500).json({ message: 'Erreur lors de la déconnexion.' });
     }
-    res.json({ success: true, message: 'Déconnexion réussie' });
+    res.clearCookie('connect.sid'); // Assurez-vous que le nom du cookie correspond
+    res.json({ success: true, message: 'Déconnexion réussie.' });
   });
 });
 
+
+// Route pour obtenir les informations de l'utilisateur
 app.get('/api/me', (req, res) => {
-  // Vérifiez si la session contient des informations utilisateur
+  console.log('Session actuelle :', req.session); // Log pour déboguer
+
   if (req.session.userId) {
     res.json({
       success: true,
@@ -184,6 +220,8 @@ app.get('/api/me', (req, res) => {
     res.status(401).json({ success: false, message: 'Utilisateur non authentifié.' });
   }
 });
+
+
   /***************************** autres fonctions**************************************/
 
 
@@ -340,7 +378,7 @@ app.delete('/api/users/:id', async (req, res) => {
 app.get("/api/biens", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT b.*, 
+      SELECT b.*,
          p.nomComplet AS nom_proprietaire
       FROM biens b
       JOIN proprietaires p ON b.proprietaire_id = p.id
@@ -565,9 +603,189 @@ app.get('/api/locataires/:id', async (req, res) => {
 
   /********************************************************************************* */
 
+  app.post('/api/paiement', async (req, res) => {
+    const {
+      contrat_id,
+      montant_paye,
+      montant_total, // Nouveau champ pour simplifier les calculs
+      mois,
+      methode_paiement,
+      statut,
+    } = req.body;
+  
+    try {
+      // Validation des données d'entrée
+      if (!contrat_id || !montant_paye || !montant_total || !mois || !methode_paiement || !statut) {
+        return res.status(400).json({ message: 'Tous les champs requis doivent être fournis.' });
+      }
+  
+      // Convertir les montants en nombres pour éviter les erreurs de type
+      const montantPaye = parseFloat(montant_paye);
+      const montantTotal = parseFloat(montant_total);
+  
+      if (isNaN(montantPaye) || isNaN(montantTotal)) {
+        return res.status(400).json({ message: 'Les montants doivent être des nombres valides.' });
+      }
+  
+      // Vérifier si le contrat existe
+      const [contrat] = await db.query('SELECT id FROM contrats WHERE id = ?', [contrat_id]);
+      if (contrat.length === 0) {
+        return res.status(404).json({ message: 'Contrat introuvable.' });
+      }
+  
+      // Vérifier les paiements précédents pour ce contrat et ce mois
+      const [paiements] = await db.query(
+        'SELECT SUM(montant_paye) AS total_paye FROM paiement WHERE contrat_id = ? AND mois = ?',
+        [contrat_id, mois]
+      );
+      const totalPaye = parseFloat(paiements[0]?.total_paye || 0); // Montant déjà payé pour ce mois
+      const montantRestantInitial = montantTotal - totalPaye; // Montant restant initial à payer
+  
+      // Initialisation des variables pour les calculs
+      let montantRestant = montantRestantInitial;
+      let paiementStatut;
+  
+      // Gestion des statuts
+      if (statut === 'avance') {
+        montantRestant -= montantPaye;
+  
+        if (montantRestant < 0) {
+          return res.status(400).json({ message: 'Le montant payé dépasse le montant restant.' });
+        }
+  
+        paiementStatut = 'avance'; // Statut reste "avance"
+      } else if (statut === 'payé') {
+        if (montantPaye !== montantTotal) {
+          return res.status(400).json({
+            message: 'Pour payer, le montant payé doit être exactement égal au loyer mensuel.',
+          });
+        }
+  
+        montantRestant = 0; // Le loyer est entièrement payé
+        paiementStatut = 'payé';
+      } else if (statut === 'payer_plus') {
+        const surplus = montantPaye - montantTotal;
+  
+        if (surplus <= 0) {
+          return res.status(400).json({
+            message: 'Pour payer plus, le montant payé doit dépasser le loyer mensuel.',
+          });
+        }
+  
+        montantRestant = surplus; // Montant restant est le surplus
+        paiementStatut = 'payer_plus';
+      } else {
+        return res.status(400).json({
+          message: "Action invalide. Choisissez entre 'avance', 'payer', ou 'payer_plus'.",
+        });
+      }
+  
+      // Insérer le paiement dans la base de données
+      await db.query(
+        'INSERT INTO paiement (contrat_id, montant_paye, montant_total, date_paiement, methode_paiement, mois, statut, montant_restant) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)',
+        [contrat_id, montantPaye, montantTotal, methode_paiement, mois, paiementStatut, montantRestant]
+      );
+  
+      // Réponse en cas de succès
+      res.status(201).json({
+        message: 'Paiement enregistré avec succès.',
+        statut: paiementStatut,
+        montantRestant,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l’enregistrement du paiement :', error);
+      res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  });
+  
+
+  /*
+  app.post('/api/paiement', async (req, res) => {
+    const { contrat_id, montant_paye, mois, montant_total, methode_paiement, statut } = req.body;
+
+    try {
+      console.log('Requête reçue avec :', req.body);
+
+      const montantPaye = parseFloat(montant_paye);
+      const montantTotal = parseFloat(montant_total);
+
+      if (isNaN(montantPaye) || isNaN(montantTotal)) {
+        return res.status(400).json({ message: 'Les montants doivent être valides.' });
+      }
+
+      if (!contrat_id || !mois || !methode_paiement || !statut) {
+        return res.status(400).json({ message: 'Tous les champs requis doivent être fournis.' });
+      }
+
+      const [contrat] = await db.query('SELECT id, loyer_mensuel FROM contrats WHERE id = ?', [contrat_id]);
+      if (!contrat || contrat.length === 0) {
+        return res.status(404).json({ message: 'Contrat introuvable.' });
+      }
+
+      const montantContratTotal = parseFloat(contrat[0].loyer_mensuel);
+
+      const [result] = await db.query(
+        'SELECT SUM(montant_paye) AS total_paye FROM paiement WHERE contrat_id = ? AND mois = ?',
+        [contrat_id, mois]
+      );
+
+      const totalPaye = parseFloat(result[0]?.total_paye || 0);
+      const montantRestantInitial = montantContratTotal - totalPaye;
+
+      console.log('Montant restant initial :', montantRestantInitial);
+
+      if (montantRestantInitial < 0) {
+        return res.status(400).json({ message: 'Le montant total a déjà été payé.' });
+      }
+
+      let montantRestant = montantRestantInitial;
+
+      if (statut === 'avance') {
+        montantRestant -= montantPaye;
+
+        if (montantRestant < 0) {
+          return res.status(400).json({ message: 'Le montant payé dépasse le montant restant.' });
+        }
+      } else if (statut === 'payer') {
+        const epsilon = 0.01;
+
+        if (Math.abs(montantPaye - montantRestantInitial) > epsilon) {
+          return res.status(400).json({ message: 'Le montant payé doit être égal au montant restant.' });
+        }
+        montantRestant > 0;
+      } else if (statut === 'payer_plus') {
+        const surplus = montantPaye - montantRestantInitial;
+
+        if (surplus <= 0) {
+          return res.status(400).json({ message: 'Le montant payé doit dépasser le montant restant.' });
+        }
+        montantRestant > 0;
+      } else {
+        return res.status(400).json({ message: 'Action invalide.' });
+      }
+
+      const paiementStatut = montantRestant > 0 ? 'avance' : 'payé';
+
+      await db.query(
+        'INSERT INTO paiement (contrat_id, montant_paye, montant_total, date_paiement, methode_paiement, mois, statut, montant_restant) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)',
+        [contrat_id, montantPaye, montantContratTotal, methode_paiement, mois, paiementStatut, montantRestant]
+      );
+
+      res.status(201).json({
+        message: 'Paiement enregistré avec succès.',
+        statut: paiementStatut,
+        montantRestant,
+      });
+    } catch (error) {
+      console.error('Erreur serveur :', error);
+      res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  });
+  */
+
 
 // Ajouter un paiement
-app.post('/api/paiement', async (req, res) => {
+/*app.post('/api/paiement', async (req, res) => {
   const { contrat_id, montant_paye, mois, montant_total, methode_paiement } = req.body;
 
   try {
@@ -638,7 +856,7 @@ app.post('/api/paiement', async (req, res) => {
     console.error('Erreur lors de l’enregistrement du paiement :', error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
-});
+});*/
 
 
 // Récupérer tous les paiements avec leurs contrats et locataires associés
@@ -650,9 +868,9 @@ app.get('/api/paiement', async (req, res) => {
         paiement.id ,
         paiement.contrat_id,
         paiement.montant_total,
-        paiement.montant_paye, 
-        paiement.date_paiement, 
-        paiement.methode_paiement, 
+        paiement.montant_paye,
+        paiement.date_paiement,
+        paiement.methode_paiement,
         paiement.statut,
         paiement.mois,
         paiement.montant_restant,
