@@ -96,7 +96,7 @@ export default {
     return {
       locataires: [],
       columns: [
-        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
+        { name: 'id', required: true, label: 'Numero', align: 'left', field: row => row.id, sortable: true },
         { name: 'nomComplet', label: 'Nom Complet', align: 'left', field: 'nomComplet' },
         { name: 'email', label: 'Email', align: 'left', field: 'email' },
         { name: 'telephone', label: 'Téléphone', align: 'left', field: 'telephone' },

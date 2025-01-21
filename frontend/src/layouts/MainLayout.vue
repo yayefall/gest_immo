@@ -80,6 +80,12 @@
           </q-item-section>
           <q-item-section>Biens</q-item-section>
         </q-item>
+        <q-item clickable v-ripple to="/cautions">
+          <q-item-section avatar>
+            <q-icon name="inventory" />
+          </q-item-section>
+          <q-item-section>Cautions</q-item-section>
+        </q-item>
         <q-item clickable v-ripple to="/contrats">
           <q-item-section avatar>
             <q-icon name="inventory" />
@@ -169,6 +175,7 @@ export default {
         "locataires",
         "paiements",
         "proprietaires",
+        "cautions"
       ];
       return !pagesWithoutLogin.includes(router.currentRoute.value.name);
     });
@@ -184,25 +191,14 @@ export default {
       if (currentPath === "/locataires") return "Locataires";
       if (currentPath === "/paiements") return "Paiements";
       if (currentPath === "/proprietaires") return "Propriétaires";
+      if (currentPath === "/cautions") return "Cautions";
+
       return "Gestion Immobilier";
     });
 
-
-
-   /* const logout = async () => {
-  try {
-    await axios.post('http://localhost:2000/api/logout', {}, { withCredentials: true });
-    user.value = null;
-    isLoggedIn.value = false;
-    router.push("/login");
-  } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error);
-  }
-};*/
-
     onMounted(async () => {
       try {
-        const response = await axios.get('http://localhost:2000/api/me', {
+        const response = await axios.get('http://localhost:2000/api/userConnect', {
           withCredentials: true,
         });
         if (response.data.success) {
@@ -247,74 +243,7 @@ export default {
 
 
 
-
-/******************************************************* */
-  // Fonction pour déconnecter l'utilisateur
- /* const logouts = () => {
-      localStorage.removeItem("auth-token");
-      localStorage.removeItem("user-data");
-      user.value = null;
-      isLoggedIn.value = false;
-      router.push("/login");
-    };*/
-
-   /*  // Vérifie et restaure l'état utilisateur depuis localStorage
-     const restoreSession = () => {
-      const token = localStorage.getItem("auth-token");
-      console.log('token:', token)
-      const savedUser = localStorage.getItem("user-data");
-
-      if (token && savedUser) {
-        try {
-          user.value = JSON.parse(savedUser); // Restaurer les données utilisateur
-          isLoggedIn.value = true;
-
-          // Vérifier si le token est toujours valide auprès du backend
-          axios
-            .get("http://localhost:2000/api/userConnete", {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((response) => {
-              if (response.data && response.data.user) {
-                user.value = response.data.user;
-                localStorage.setItem(
-                  "user-data",
-                  JSON.stringify(response.data.user)
-                ); // Mettre à jour les données utilisateur si nécessaire
-                isLoggedIn.value = true;
-              } else {
-                console.error(
-                  "Réponse inattendue de l'API :",
-                  response.data
-                );
-                logout();
-              }
-            })
-            .catch((error) => {
-              console.error(
-                "Erreur lors de la validation du token :",
-                error
-              );
-              logout();
-            });
-        } catch (error) {
-          console.error("Erreur lors de l'analyse des données utilisateur :", error);
-          logout();
-        }
-      } else {
-        console.warn("Aucun token ou données utilisateur trouvés.");
-        logout();
-      }
-    };*/
-
-    // Initialisation au montage du composant
-   /* onMounted(() => {
-      restoreSession();
-    });*/
-
-/*************************************************************** */
-
-  },
+  }
 };
 </script>
 

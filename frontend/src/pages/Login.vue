@@ -99,7 +99,7 @@ export default defineComponent({
         message: 'Connexion réussie ! Bienvenue, ' + response.data.user.nomComplet,
       });
       router.push('/dashboard');
-      console.log('Connexion réussie');
+      console.log('Connexion réussie ::' + response.data.user.nomComplet);
     } else {
       errorMessage.value = response.data.message || 'Nom d’utilisateur ou mot de passe incorrect.';
       $q.notify({
@@ -128,51 +128,6 @@ export default defineComponent({
       errorMessage
     };
 
-
-
-
-
-
-  /*const login = async () => {
-      isLoading.value = true;
-      try {
-        const response = await axios.post("http://localhost:2000/api/login", {
-          username: username.value,
-          password: password.value,
-        });
-
-        // Sauvegarder le token et infos utilisateur
-         localStorage.setItem("auth-token", response.data.token);
-         localStorage.setItem("user-data", JSON.stringify(response.data.user));
-          user.value = response.data.user;
-         isLoggedIn.value = true;
-
-        // Réinitialiser les champs du formulaire
-        username.value = "";
-        password.value = "";
-
-        // Rediriger vers la page dashboard
-        router.push("/dashboard");
-      } catch (error) {
-        // Afficher l'erreur dans la console pour mieux comprendre
-        console.error("Erreur lors de la connexion :", error);
-
-        const message =
-          error.response?.status === 401
-            ? "Nom d'utilisateur ou mot de passe incorrect."
-            : error.response?.status === 500
-            ? "Erreur interne du serveur. Veuillez réessayer plus tard."
-            : "Une erreur inconnue s'est produite.";
-
-        $q.notify({
-          type: "negative",
-          message,
-        });
-      } finally {
-        isLoading.value = false;
-      }
-
-    };*/
 
 
   },

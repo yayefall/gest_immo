@@ -23,13 +23,13 @@
       >
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
-            <q-btn
+           <!-- <q-btn
               class="text-center q-mx-sm"
               title="Modifier le paiement"
               icon="edit"
               color="primary"
               @click="editPaiement(props.row)"
-            />
+            />-->
             <q-btn
               title="Supprimer le paiement"
               icon="delete"
@@ -245,7 +245,7 @@ export default {
     // ajouter un paiement
 
     async savePaiement() {
-  try {
+    try {
     const contrat = this.contrats.find(c => c.id === this.paiementForm.contrat_id);
     if (!contrat) {
       return this.$q.notify({ type: 'negative', message: 'Contrat introuvable.' });
@@ -321,65 +321,78 @@ export default {
 
 
     // Génération de la facture
-
 generateInvoice(paiement) {
   const doc = new jsPDF();
+
+   // Ajouter une bordure autour du reçu
+  doc.rect(10, 10, 190, 250);
 
   // Configuration de la page
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // En-tête de la facture
-  doc.setFontSize(18);
+  // Titre de la facture
+  doc.setFontSize(16);
   doc.setTextColor(40, 40, 40);
   doc.setFont("helvetica", "bold");
   doc.text("FACTURE DE PAIEMENT", pageWidth / 2, 20, { align: "center" });
 
-  // Sous-en-tête
+  // Ligne de séparation sous le titre
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.5);
+  doc.line(20, 25, pageWidth - 20, 25);
+
+  // Informations générales (Locataire et Date)
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text(`Date : ${new Date().toLocaleDateString()}`, 20, 30);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Facturé à : ${paiement.nom_locataire}`, 20, 35);
+  doc.text(`Date : ${new Date().toLocaleDateString()}`, pageWidth - 70, 35, { align: "right" });
 
-  // Cadre des informations
+  // Encadré des détails de paiement
   doc.setDrawColor(0); // Couleur de bordure noire
   doc.setLineWidth(0.5);
-  doc.roundedRect(15, 40, pageWidth - 60, 80, 10, 10);
+  doc.roundedRect(15, 45, pageWidth - 30, 100, 5, 5);
 
-  // Informations sur le paiement
-  doc.setFontSize(12);
-  doc.setTextColor(60, 60, 60);
-  doc.text(`Locataire : ${paiement.nom_locataire}`, 20, 50);
-  doc.text(`Date de Paiement : ${new Date(paiement.date_paiement).toLocaleDateString()}`, 20, 60);
-  doc.text(`Loyer Mensuel : ${paiement.montant_total} FCFA`, 20, 70);
-  doc.text(`Montant Payé : ${paiement.montant_paye} FCFA`, 20, 80);
+  // Titre des détails de paiement
+  doc.setFont("helvetica", "bold");
+  doc.text("Détails du paiement :", 20, 55);
 
-  // Afficher les montants en fonction du statut
+  // Détails du paiement
+  doc.setFont("helvetica", "normal");
+  doc.text(`Date de Paiement : ${new Date(paiement.date_paiement).toLocaleDateString()}`, 20, 65);
+  doc.text(`Mois Payé : ${paiement.mois}`, 20, 75);
+  doc.text(`Méthode de Paiement : ${paiement.methode_paiement}`, 20, 85);
+  doc.text(`Loyer Mensuel : ${paiement.montant_total} FCFA`, 20, 95);
+  doc.text(`Montant Payé : ${paiement.montant_paye} FCFA`, 20, 105);
+
+  // Afficher les montants spécifiques selon le statut
   if (paiement.statut === "avance") {
-    doc.text(`Montant Restant : ${paiement.montant_restant} FCFA`, 20, 90);
+    doc.text(`Montant Restant : ${paiement.montant_restant} FCFA`, 20, 115);
   } else if (paiement.statut === "payer_plus") {
-    doc.text(`Montant Surplus : ${paiement.montant_paye - paiement.montant_total} FCFA`, 20, 90);
+    doc.text(`Montant Surplus : ${paiement.montant_paye - paiement.montant_total} FCFA`, 20, 115);
   }
-  // Ne pas afficher `montant_restant` ou `montant_surplus` pour le statut "payer"
 
-  doc.text(`Mois Payé : ${paiement.mois}`, 20, 100);
-  doc.text(`Méthode de Paiement : ${paiement.methode_paiement}`, 20, 110);
+  // Ligne de séparation entre les sections
+  doc.setLineWidth(0.2);
+  doc.line(20, 125, pageWidth - 20, 125);
 
-  // Table des détails (si applicable)
-  // Ajouter un cadre pour de futurs détails ou tableaux si besoin
-
-  // Signature
+  // Section de signature
   doc.setFontSize(12);
-  doc.text("Signature :", 20, 130);
+  doc.setTextColor(40, 40, 40);
+  doc.text("Signature :", 20, 140);
+  doc.line(50, 140, 120, 140); // Ligne pour la signature
 
   // Pied de page
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.text("Merci pour votre paiement.", pageWidth / 2, pageHeight - 20, { align: "center" });
+  doc.text("Merci pour votre paiement. Votre fidélité nous est précieuse.", pageWidth / 2, pageHeight - 20, { align: "center" });
 
   // Sauvegarde du fichier
   const fileName = `Facture_${paiement.nom_locataire}_${new Date(paiement.date_paiement).toLocaleDateString()}.pdf`;
   doc.save(fileName);
 
+  // Notification de succès
   this.$q.notify({
     type: "positive",
     message: "Facture générée avec succès."

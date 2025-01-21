@@ -10,14 +10,10 @@ const routes = [
       { path: '/profil', name:'profil',component: () => import('pages/Profil.vue') },
       { path: '/biens', name:'biens',component: () => import('pages/Bien.vue') },
       { path: '/contrats', name:'contrats',component: () => import('pages/Contrat.vue') },
-      { path: '/factures', name:'factures',component: () => import('pages/Facture.vue') },
+      { path: '/cautions', name:'cautions',component: () => import('src/pages/Cautions.vue') },
       { path: '/locataires', name:'locataires',component: () => import('pages/Locataire.vue') },
       { path: '/paiements', name:'paiements',component: () => import('pages/Paiement.vue') },
       { path: '/proprietaires', name:'proprietaires',component: () => import('pages/Proprietaire.vue') },
-
-
-
-
 
 
     ]
