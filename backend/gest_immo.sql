@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : localhost:3306
--- Généré le : mar. 07 jan. 2025 à 15:18
+-- Généré le : mar. 21 jan. 2025 à 20:47
 -- Version du serveur :  8.0.40-0ubuntu0.20.04.1
 -- Version de PHP : 7.4.3-4ubuntu2.28
 
@@ -43,9 +43,32 @@ CREATE TABLE `biens` (
 --
 
 INSERT INTO `biens` (`id`, `type`, `adresse`, `superficie`, `nombre_pieces`, `loyer_mensuel`, `proprietaire_id`) VALUES
-(1, 'Appartement', 'touba guediawaye', '300.00', 3, '150000.00', 1),
-(2, 'Maison', 'Cité Fadia', '650.00', 4, '170000.00', 1),
-(3, 'bureau', 'Touba Almadie', '200.00', 1, '60000.00', 2);
+(1, 'Appartement', 'touba guediawaye', '200.00', 3, '150000.00', 1),
+(2, 'Maison', 'Cité Fadia', '650.00', 4, '170000.00', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `cautions`
+--
+
+CREATE TABLE `cautions` (
+  `id` int NOT NULL,
+  `montant` decimal(10,2) NOT NULL,
+  `date_depot` date NOT NULL,
+  `contrat_id` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `cautions`
+--
+
+INSERT INTO `cautions` (`id`, `montant`, `date_depot`, `contrat_id`, `created_at`) VALUES
+(1, '450000.00', '2025-01-17', 6, '2025-01-17 20:13:41'),
+(2, '510000.00', '2025-01-17', 7, '2025-01-17 21:53:15'),
+(36, '450000.00', '2025-01-21', 8, '2025-01-21 20:40:52');
 
 -- --------------------------------------------------------
 
@@ -69,10 +92,9 @@ CREATE TABLE `contrats` (
 --
 
 INSERT INTO `contrats` (`id`, `locataire_id`, `bien_id`, `date_debut`, `date_fin`, `loyer_mensuel`, `etat`, `libelle`) VALUES
-(1, 8, 1, '2024-12-26', '2025-05-26', '150000.00', 'Actif', 'Location Appartements'),
-(2, 9, 2, '2024-12-26', '2025-06-26', '170000.00', 'Actif', 'Location  Maison'),
-(4, 8, 3, '2024-12-27', '2024-12-27', '60000.00', 'Terminé', 'Location Bureau'),
-(5, 11, 1, '2024-12-29', '2024-12-29', '150000.00', 'Actif', 'Location Appartement');
+(6, 8, 1, '2024-10-11', '2025-03-11', '150000.00', 'Actif', 'location_Apt_Allassane'),
+(7, 9, 2, '2024-05-11', '2025-06-11', '170000.00', 'Actif', 'Location_Maison_Fallou'),
+(8, 11, 1, '2024-04-21', '2025-01-21', '150000.00', 'Actif', 'Location_Apt_Omar');
 
 -- --------------------------------------------------------
 
@@ -113,7 +135,7 @@ CREATE TABLE `paiement` (
   `montant_restant` decimal(10,2) NOT NULL,
   `date_paiement` datetime DEFAULT CURRENT_TIMESTAMP,
   `methode_paiement` enum('Espèces','Orange Money','Wave','') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `statut` enum('payé','avance','') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL
+  `statut` enum('payé','avance','payer_plus') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -121,10 +143,26 @@ CREATE TABLE `paiement` (
 --
 
 INSERT INTO `paiement` (`id`, `contrat_id`, `montant_total`, `montant_paye`, `mois`, `montant_restant`, `date_paiement`, `methode_paiement`, `statut`) VALUES
-(9, 1, 150000, '100000.00', '12', '50000.00', '2024-12-28 20:21:12', 'Espèces', 'avance'),
-(23, 1, 150000, '130000.00', '07', '20000.00', '2024-12-28 22:55:22', 'Wave', 'avance'),
-(26, 5, 150000, '140000.00', '06', '10000.00', '2024-12-29 15:04:03', 'Orange Money', 'avance'),
-(27, 5, 150000, '150000.00', '07', '0.00', '2024-12-29 16:23:49', 'Orange Money', 'payé');
+(49, 8, 150000, '100000.00', '02', '50000.00', '2025-01-16 14:06:06', 'Wave', 'avance'),
+(56, 6, 150000, '200000.00', '03', '50000.00', '2025-01-16 16:51:51', 'Wave', 'payer_plus'),
+(57, 8, 150000, '50000.00', '04', '100000.00', '2025-01-17 08:31:55', 'Orange Money', 'avance'),
+(60, 6, 150000, '250000.00', '06', '100000.00', '2025-01-17 09:57:36', 'Wave', 'payer_plus'),
+(61, 7, 170000, '70000.00', '03', '100000.00', '2025-01-17 10:02:19', 'Espèces', 'avance'),
+(64, 6, 150000, '300000.00', '01', '150000.00', '2025-01-17 11:56:31', 'Espèces', 'payer_plus'),
+(65, 7, 340000, '300000.00', '01,02', '40000.00', '2025-01-17 12:11:44', 'Espèces', 'avance'),
+(66, 8, 300000, '300000.00', '01,04', '0.00', '2025-01-17 12:14:19', 'Orange Money', 'payé'),
+(67, 8, 150000, '100000.00', '01', '50000.00', '2025-01-17 12:18:13', 'Wave', 'avance'),
+(68, 7, 680000, '500000.00', '01,02,03,04', '180000.00', '2025-01-17 12:21:11', 'Espèces', 'avance'),
+(69, 8, 450000, '500000.00', '01,02,03', '50000.00', '2025-01-17 12:30:09', 'Espèces', 'payer_plus'),
+(70, 6, 450000, '400000.00', '01,02,03', '50000.00', '2025-01-17 14:29:56', 'Espèces', 'avance'),
+(71, 7, 510000, '600000.00', '01,02,03', '90000.00', '2025-01-17 14:31:26', 'Wave', 'payer_plus'),
+(72, 8, 150000, '150000.00', '01', '0.00', '2025-01-17 14:36:16', 'Espèces', 'payé'),
+(73, 6, 300000, '250000.00', '01,06', '50000.00', '2025-01-17 23:36:37', 'Orange Money', 'avance'),
+(75, 7, 170000, '150000.00', '01', '20000.00', '2025-01-17 23:45:37', 'Orange Money', 'avance'),
+(76, 8, 300000, '350000.00', '02,01', '50000.00', '2025-01-17 23:56:37', 'Espèces', 'payer_plus'),
+(77, 7, 340000, '340000.00', '02,03', '0.00', '2025-01-18 00:01:31', 'Orange Money', 'payé'),
+(79, 6, 150000, '200000.00', '01', '50000.00', '2025-01-21 20:29:00', 'Espèces', 'payer_plus'),
+(80, 8, 150000, '150000.00', '02', '0.00', '2025-01-21 20:32:52', 'Wave', 'payé');
 
 -- --------------------------------------------------------
 
@@ -170,7 +208,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `nomComplet`, `username`, `email`, `password`, `created_at`, `is_active`) VALUES
-(1, 'cheikh ibra diop', 'lampfall', 'lampfall@gmail.com', 'lampfall', '2024-12-24 22:37:27', 1);
+(1, 'cheikh ibra diop', 'lampfall', 'lampfall@gmail.com', '$2b$10$io4g55MQSvbZBTS0VkBfU.dvK2NGKw6qRmKSnp4m3rVCrQxhl08.S', '2024-12-24 22:37:27', 1),
+(5, 'Bocar Anne', 'bocaranne', 'bocaranne@gmail.com', '$2b$10$zkg6c10ipVPW/2ECbaWrWe/dUjXyAuih47l5wbmhAd4w53vFD0kBi', '2025-01-11 17:40:40', 1),
+(10, 'Bigué Mr Ba', 'bigueba', 'bigue@gmail.com', '$2b$10$kJv1bSe58jhjxgJ8ZaIDaeJckCJVygXus6OsEJMNKuwmdL0Wr2og.', '2025-01-17 12:37:11', 1);
 
 --
 -- Index pour les tables déchargées
@@ -182,6 +222,13 @@ INSERT INTO `users` (`id`, `nomComplet`, `username`, `email`, `password`, `creat
 ALTER TABLE `biens`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_proprietaire_id` (`proprietaire_id`);
+
+--
+-- Index pour la table `cautions`
+--
+ALTER TABLE `cautions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `contrat_id` (`contrat_id`);
 
 --
 -- Index pour la table `contrats`
@@ -209,8 +256,7 @@ ALTER TABLE `paiement`
 -- Index pour la table `proprietaires`
 --
 ALTER TABLE `proprietaires`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Index pour la table `users`
@@ -231,6 +277,12 @@ ALTER TABLE `biens`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT pour la table `cautions`
+--
+ALTER TABLE `cautions`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+
+--
 -- AUTO_INCREMENT pour la table `contrats`
 --
 ALTER TABLE `contrats`
@@ -246,23 +298,29 @@ ALTER TABLE `locataires`
 -- AUTO_INCREMENT pour la table `paiement`
 --
 ALTER TABLE `paiement`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
+
+--
+-- AUTO_INCREMENT pour la table `proprietaires`
+--
+ALTER TABLE `proprietaires`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT pour la table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Contraintes pour les tables déchargées
 --
 
 --
--- Contraintes pour la table `biens`
+-- Contraintes pour la table `cautions`
 --
-ALTER TABLE `biens`
-  ADD CONSTRAINT `fk_proprietaire_id` FOREIGN KEY (`proprietaire_id`) REFERENCES `proprietaires` (`id`);
+ALTER TABLE `cautions`
+  ADD CONSTRAINT `cautions_ibfk_1` FOREIGN KEY (`contrat_id`) REFERENCES `contrats` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `contrats`
