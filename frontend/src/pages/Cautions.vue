@@ -105,8 +105,8 @@
             <p>Êtes-vous sûr de vouloir supprimer cette caution ? Cette action est irréversible.</p>
           </q-card-section>
           <q-card-actions align="right">
-            <q-btn  label="Annuler" color="primary" @click="isDeleteDialogOpen = false" />
-            <q-btn  label="Confirmer" color="negative" @click="confirmDelete" />
+            <q-btn label="Annuler" color="primary" @click="isDeleteDialogOpen = false" />
+            <q-btn label="Confirmer" color="negative" @click="confirmDelete" />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -132,6 +132,7 @@ export default {
       pagination: { rowsPerPage: 10 },
       columns: [
         { name: "caution_id", label: "Numéro", align: "left", field: "caution_id" },
+        { name: "contrat_libelle", label: "Nom Contrat", align: "left", field: "contrat_libelle" },
         { name: "nom_locataire", label: "Locataire", align: "left", field: "nom_locataire" },
         { name: "loyer_mensuel", label: "Loyer Mensuel", align: "left", field: "loyer_mensuel" },
         { name: "montant", label: "Caution", align: "left", field: "montant" },
@@ -143,7 +144,6 @@ export default {
           format: val => new Date(val).toLocaleDateString(),
           sortable: true,
         },
-        { name: "contrat_libelle", label: "Contrat", align: "left", field: "contrat_libelle" },
         { name: "actions", label: "Actions", align: "center" },
       ],
       cautionForm: {

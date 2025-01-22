@@ -3,7 +3,7 @@
   <q-page padding>
     <q-card>
       <q-toolbar>
-        <q-btn label="Ajouter Propriétaire" color="primary" @click="openAddDialog" />
+        <q-btn label="Nouveau Propriétaire" color="primary" @click="openAddDialog" />
       </q-toolbar>
 
       <q-table
@@ -64,7 +64,7 @@ export default {
     return {
       proprietaires: [],
       columns: [
-        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
+        { name: 'id', required: true, label: 'Numero', align: 'left', field: row => row.id, sortable: true },
         { name: "nomComplet", label: "Nom", align: "left", field: "nomComplet" },
         { name: "email", label: "Email", align: "left", field: "email" },
         { name: "telephone", label: "Téléphone", align: "left", field: "telephone" },
@@ -111,7 +111,7 @@ export default {
       this.proprietaireForm = { ...proprietaire };
       this.isDialogOpen = true;
     },
-   
+
       async saveProprietaire() {
   try {
     // Vérification de base avant l'envoi

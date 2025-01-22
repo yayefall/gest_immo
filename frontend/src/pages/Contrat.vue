@@ -184,7 +184,7 @@ export default {
       biens: [],
       search: '',
       columns: [
-        { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
+        { name: 'id', required: true, label: 'Numero', align: 'left', field: row => row.id, sortable: true },
         { name: 'libelle', label: 'Nom Contrat', align: 'left', field: 'libelle' },
         { name: 'nom_locataires', label: 'Locataire', align: 'left', field: 'nom_locataires' },
         { name: 'nom_bien', label: 'Bien', align: 'left', field: 'nom_bien' },

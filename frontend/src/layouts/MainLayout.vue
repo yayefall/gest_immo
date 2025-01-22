@@ -76,37 +76,37 @@
       <q-list>
         <q-item clickable v-ripple to="/biens">
           <q-item-section avatar>
-            <q-icon name="assessment" />
+            <q-icon name="home" />
           </q-item-section>
           <q-item-section>Biens</q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/cautions">
           <q-item-section avatar>
-            <q-icon name="inventory" />
+            <q-icon name="receipt_long" />
           </q-item-section>
           <q-item-section>Cautions</q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/contrats">
           <q-item-section avatar>
-            <q-icon name="inventory" />
+            <q-icon name="gavel" />
           </q-item-section>
           <q-item-section>Contrats</q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/locataires">
           <q-item-section avatar>
-            <q-icon name="sync_alt" />
+            <q-icon name="people" />
           </q-item-section>
           <q-item-section>Locataires</q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/paiements">
           <q-item-section avatar>
-            <q-icon name="post_add" />
+            <q-icon name="credit_card" />
           </q-item-section>
           <q-item-section>Paiements</q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/profil">
           <q-item-section avatar>
-            <q-icon name="person" />
+            <q-icon name="person_pin" />
           </q-item-section>
           <q-item-section>Profil</q-item-section>
         </q-item>
@@ -118,7 +118,7 @@
         </q-item>
         <q-item clickable v-ripple to="/dashboard">
           <q-item-section avatar>
-            <q-icon name="dashboard" />
+            <q-icon name="space_dashboard" />
           </q-item-section>
           <q-item-section>Tableau de Bord</q-item-section>
         </q-item>

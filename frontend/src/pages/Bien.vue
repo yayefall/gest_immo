@@ -140,7 +140,7 @@ export default {
       types: ['Appartement', 'Maison', 'Bureau', 'Terrain'], // Exemples de types de biens
       columns: [
         { name: 'id', required: true, label: 'ID', align: 'left', field: row => row.id, sortable: true },
-        { name: 'type', label: 'Type', align: 'left', field: 'type' },
+        { name: 'type', label: 'Biens', align: 'left', field: 'type' },
         { name: 'adresse', label: 'Adresse', align: 'left', field: 'adresse' },
         { name: 'superficie', label: 'Superficie (m²)', align: 'left', field: 'superficie', sortable: true },
         { name: 'nombre_pieces', label: 'Nombre de pièces', align: 'left', field: 'nombre_pieces' },
